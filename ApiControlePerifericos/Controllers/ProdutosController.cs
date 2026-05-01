@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ApiControlePerifericos.Controllers
 {
     [ApiController]
-    [Route("[Controller]")]
+    [Route("api/[controller]")]
     public class ProdutosController : ControllerBase
     {
         private readonly IUnitOfWork _uof;
