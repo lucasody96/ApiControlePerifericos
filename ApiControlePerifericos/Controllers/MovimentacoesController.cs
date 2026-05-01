@@ -2,7 +2,6 @@
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using AutoMapper;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiControlePerifericos.Controllers
