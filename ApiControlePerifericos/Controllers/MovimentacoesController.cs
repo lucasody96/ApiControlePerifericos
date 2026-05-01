@@ -22,7 +22,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Movimentacao>> Get()
+        public ActionResult<IEnumerable<MovimentacaoDTO>> Get()
         {
             var movimentacoes = _uof.MovimentacaoRepository.GetAll();
 
