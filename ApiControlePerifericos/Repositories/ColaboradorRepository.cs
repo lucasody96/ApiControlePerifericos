@@ -4,7 +4,7 @@ using ApiControlePerifericos.Models;
 
 namespace ApiControlePerifericos.Repositories
 {
-    public class ColaboradorRepository: Repository<Colaborador>, IColaboradorRepository
+    public class ColaboradorRepository : Repository<Colaborador>, IColaboradorRepository
     {
         public ColaboradorRepository(AppDbContext context) : base(context)
         {
