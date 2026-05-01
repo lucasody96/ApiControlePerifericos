@@ -8,8 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ApiControlePerifericos.Controllers
 {
-    [Route("[Controller]")]
     [ApiController]
+    [Route("[Controller]")]
     public class ProdutosController: ControllerBase
     {
         private readonly IUnitOfWork _uof;

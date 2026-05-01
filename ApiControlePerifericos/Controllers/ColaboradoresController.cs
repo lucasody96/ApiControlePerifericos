@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ApiControlePerifericos.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
+    [Route("[controller]")]
     public class ColaboradoresController : ControllerBase
     {
         private readonly IUnitOfWork _uof;
