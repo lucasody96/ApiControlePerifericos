@@ -8,7 +8,7 @@ namespace ApiControlePerifericos.Controllers
 {
     [ApiController]
     [Route("[Controller]")]
-    public class ProdutosController: ControllerBase
+    public class ProdutosController : ControllerBase
     {
         private readonly IUnitOfWork _uof;
         private readonly ILogger<ProdutosController> _logger;
