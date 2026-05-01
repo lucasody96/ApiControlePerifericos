@@ -78,7 +78,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(produtoAtualizadoDto);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public ActionResult<ProdutoDTO> Delete(int id)
         {
             var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
