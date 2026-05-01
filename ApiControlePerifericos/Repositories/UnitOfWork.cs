@@ -47,10 +47,5 @@ namespace ApiControlePerifericos.Repositories
         {
             _context.SaveChanges();
         }
-
-        public void Dispose()
-        {
-            _context.Dispose();
-        }
     }
 }
