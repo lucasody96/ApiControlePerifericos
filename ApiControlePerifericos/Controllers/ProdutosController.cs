@@ -56,10 +56,10 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados do produto inválidos.");
             }
             var produto = _mapper.Map<Produto>(produtoDto);
-            _uof.ProdutoRepository.Create(produto);
+            var novoProduto = _uof.ProdutoRepository.Create(produto);
             _uof.Commit();
 
-            var novoprodutoDto = _mapper.Map<ProdutoDTO>(produto);
+            var novoprodutoDto = _mapper.Map<ProdutoDTO>(novoProduto);
             return CreatedAtRoute("ObterProduto", new { id = novoprodutoDto.ProdutoId }, novoprodutoDto);
         }
 
@@ -72,9 +72,9 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados do produto inválidos ou produto não encontrado.");
             }
             var produto = _mapper.Map<Produto>(produtoDto);
-            _uof.ProdutoRepository.Update(produto);
+            var produtoAtualizado = _uof.ProdutoRepository.Update(produto);
             _uof.Commit();
-            var produtoAtualizadoDto = _mapper.Map<ProdutoDTO>(produto);
+            var produtoAtualizadoDto = _mapper.Map<ProdutoDTO>(produtoAtualizado);
             return Ok(produtoAtualizadoDto);
         }
 
