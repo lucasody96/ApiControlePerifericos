@@ -60,8 +60,7 @@ namespace ApiControlePerifericos.Controllers
             _uof.Commit();
 
             var novoColaboradorDTO = _mapper.Map<ColaboradorDTO>(novoColaborador);
-            return new CreatedAtRouteResult("ObterColaborador", 
-                new { id = novoColaboradorDTO.ColaboradorId }, novoColaboradorDTO);
+            return CreatedAtRoute("ObterColaborador", new { id = novoColaboradorDTO.ColaboradorId }, novoColaboradorDTO);
         }
 
         [HttpPut("{id:int}")]
