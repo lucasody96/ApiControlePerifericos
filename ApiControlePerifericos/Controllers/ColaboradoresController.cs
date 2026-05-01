@@ -25,7 +25,7 @@ namespace ApiControlePerifericos.Controllers
         public ActionResult<IEnumerable<ColaboradorDTO>> Get()
         {
             var colaboradores = _uof.ColaboradorRepository.GetAll();
-            if (colaboradores is null)
+            if (colaboradores is null || !colaboradores.Any())
             {
                 _logger.LogWarning("Nenhum colaborador encontrado.");
                 return NotFound("Nenhum colaborador encontrado.");
