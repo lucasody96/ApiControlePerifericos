@@ -90,10 +90,10 @@ namespace ApiControlePerifericos.Controllers
                 return NotFound($"Movimentação com ID {id} não encontrada.");
             }
 
-            var movimentacaoExcluída = _uof.MovimentacaoRepository.Delete(movimentacao);
+            var movimentacaoExcluida = _uof.MovimentacaoRepository.Delete(movimentacao);
             _uof.Commit();
-            var movimentacaoExcluídaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluída);
-            return Ok(movimentacaoExcluídaDTO);
+            var movimentacaoExcluidaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluida);
+            return Ok(movimentacaoExcluidaDTO);
         }
     }
 }
