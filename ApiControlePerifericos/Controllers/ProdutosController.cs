@@ -1,6 +1,4 @@
-﻿
-
-using ApiControlePerifericos.DTOs;
+﻿using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using AutoMapper;
@@ -15,7 +13,6 @@ namespace ApiControlePerifericos.Controllers
         private readonly IUnitOfWork _uof;
         private readonly ILogger<ProdutosController> _logger;
         private readonly IMapper _mapper;
-
 
         public ProdutosController(IUnitOfWork uof, ILogger<ProdutosController> logger, IMapper mapper)
         {

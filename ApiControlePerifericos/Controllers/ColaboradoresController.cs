@@ -1,5 +1,4 @@
-﻿
-using ApiControlePerifericos.DTOs;
+﻿using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using AutoMapper;
@@ -83,7 +82,6 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpDelete("{id:int}")]
-
         public ActionResult<ColaboradorDTO> Delete(int id)
         {
             var colaborador = _uof.ColaboradorRepository.Get(c => c.ColaboradorId == id);
