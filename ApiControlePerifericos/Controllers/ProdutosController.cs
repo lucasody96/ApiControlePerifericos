@@ -25,7 +25,7 @@ namespace ApiControlePerifericos.Controllers
         public ActionResult<IEnumerable<ProdutoDTO>> Get()
         {
             var produtos = _uof.ProdutoRepository.GetAll();
-            if (produtos == null || !produtos.Any())
+            if (produtos is null || !produtos.Any())
             {
                 _logger.LogInformation("Nenhum produto encontrado.");
                 return NotFound("Nenhum produto encontrado.");
@@ -38,7 +38,7 @@ namespace ApiControlePerifericos.Controllers
         public ActionResult<ProdutoDTO> Get(int id)
         {
             var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
-            if (produto == null)
+            if (produto is null)
             {
                 _logger.LogWarning($"Produto com ID {id} não encontrado.");
                 return NotFound($"Produto com ID {id} não encontrado.");

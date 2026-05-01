@@ -26,7 +26,7 @@ namespace ApiControlePerifericos.Controllers
         {
             var movimentacoes = _uof.MovimentacaoRepository.GetAll();
 
-            if (movimentacoes == null || !movimentacoes.Any())
+            if (movimentacoes is null || !movimentacoes.Any())
             {
                 _logger.LogInformation("Nenhuma movimentação encontrada.");
                 return NotFound("Nenhuma movimentação encontrada.");
