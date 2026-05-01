@@ -69,8 +69,8 @@ namespace ApiControlePerifericos.Controllers
         {
             if (colaboradorDto is null || id != colaboradorDto.ColaboradorId)
             {
-                _logger.LogWarning($"Dados do colaborador inválidos ou colaborador não encontrado.");
-                return BadRequest("Dados do colaborador inválidos ou colaborador não encontrado.");
+                _logger.LogWarning($"Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
+                return BadRequest("Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
             }
 
             var colaborador = _mapper.Map<Colaborador>(colaboradorDto);
