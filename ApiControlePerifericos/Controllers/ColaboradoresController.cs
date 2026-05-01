@@ -74,10 +74,10 @@ namespace ApiControlePerifericos.Controllers
             }
 
             var colaborador = _mapper.Map<Colaborador>(colaboradorDto);
-            var colabotadorAtualizado = _uof.ColaboradorRepository.Update(colaborador);     
+            var colaboradorAtualizado = _uof.ColaboradorRepository.Update(colaborador);     
 
             _uof.Commit();
-            var colaboradorAtualizadoDTO = _mapper.Map<ColaboradorDTO>(colabotadorAtualizado);
+            var colaboradorAtualizadoDTO = _mapper.Map<ColaboradorDTO>(colaboradorAtualizado);
             return Ok(colaboradorAtualizadoDTO);
         }
 
