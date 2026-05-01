@@ -23,12 +23,14 @@ namespace ApiControlePerifericos.Repositories
         {
             return _context.Set<T>().FirstOrDefault(predicate);
         }
+
         public T Create(T entity)
         {
             _context.Set<T>().Add(entity);
             //_context.SaveChanges(); usado no UnitOfWork
             return entity;
         }
+
         public T Update(T entity)
         {
             _context.Set<T>().Update(entity);
@@ -39,6 +41,6 @@ namespace ApiControlePerifericos.Repositories
         {
             _context.Set<T>().Remove(entity);
             return entity;
-        }       
+        }
     }
 }

@@ -8,6 +8,7 @@ namespace ApiControlePerifericos.Repositories
     {
         public ColaboradorRepository(AppDbContext context) : base(context)
         {
+
         }
 
         //Não há métodos específicos para Colaborador além dos genéricos implementados na classe base Repository<T>.
