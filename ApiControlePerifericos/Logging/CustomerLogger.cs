@@ -2,48 +2,40 @@
 {
     public class CustomerLogger : ILogger
     {
-        readonly string loggerName;
-        readonly CustomLoggerProviderConfiguration loggerConfig;
+        private readonly CustomLoggerProviderConfiguration _loggerConfig;
 
-        public CustomerLogger(string name, CustomLoggerProviderConfiguration config)
+        public CustomerLogger(CustomLoggerProviderConfiguration config)
         {
-            loggerName = name;
-            loggerConfig = config;
+            _loggerConfig = config;
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         {
             return null;
         }
 
         public bool IsEnabled(LogLevel logLevel)
         {
-            return logLevel == loggerConfig.LogLevel;
+            return logLevel == _loggerConfig.LogLevel;
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
-                Exception exception, Func<TState, Exception, string> formatter)
+                Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            string mensagem = $"{logLevel.ToString()}: {eventId.Id} - {formatter(state, exception)}";
+            if (!IsEnabled(logLevel))
+                return;
+
+            string mensagem = $"{logLevel}: {eventId.Id} - {formatter(state, exception)}";
 
             EscreverTextoNoArquivo(mensagem);
         }
 
-        private void EscreverTextoNoArquivo(string mensagem)
+        private static void EscreverTextoNoArquivo(string mensagem)
         {
-            string caminhoArquivoLog = @"C:\Projetos\ControleHardwaresCoworking\WebApi\ApiControlePerifericos\Log.txt";
-            using (StreamWriter streamWriter = new StreamWriter(caminhoArquivoLog, true))
-            {
-                try
-                {
-                    streamWriter.WriteLine(mensagem);
-                    streamWriter.Close();
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-            }
+            const string caminhoArquivoLog = @"C:\Projetos\ControleHardwaresCoworking\WebApi\ApiControlePerifericos\Log.txt";
+
+            using StreamWriter streamWriter = new(caminhoArquivoLog, true);
+            streamWriter.WriteLine(mensagem);
         }
     }
 
