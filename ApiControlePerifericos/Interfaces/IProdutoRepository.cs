@@ -2,7 +2,7 @@
 
 namespace ApiControlePerifericos.Interfaces
 {
-    public interface IProdutoRepository: IRepository<Produto>
+    public interface IProdutoRepository : IRepository<Produto>
     {
 
     }

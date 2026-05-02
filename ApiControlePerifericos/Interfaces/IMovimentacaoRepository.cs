@@ -2,9 +2,9 @@
 
 namespace ApiControlePerifericos.Interfaces
 {
-    public interface IMovimentacaoRepository: IRepository<Movimentacao>
+    public interface IMovimentacaoRepository : IRepository<Movimentacao>
     {
-        IEnumerable<Movimentacao> GetMovimentacoesPorProduto(int produtoId);
-        IEnumerable<Movimentacao> GetMovimentacoesPorColaborador(int colaboradorId);
+        IEnumerable<Movimentacao> GetByProdutoId(int produtoId);
+        IEnumerable<Movimentacao> GetByColaboradorId(int colaboradorId);
     }
 }

@@ -11,11 +11,11 @@ namespace ApiControlePerifericos.Controllers
     [ApiController]
     public class ColaboradoresController : ControllerBase
     {
-        private readonly IUnityOfWork _uof;
+        private readonly IUnitOfWork _uof;
         private readonly ILogger<ColaboradoresController> _logger;
         private readonly IMapper _mapper;
 
-        public ColaboradoresController(IUnityOfWork uof, ILogger<ColaboradoresController> logger, IMapper mapper)
+        public ColaboradoresController(IUnitOfWork uof, ILogger<ColaboradoresController> logger, IMapper mapper)
         {
             _uof = uof;
             _logger = logger;

@@ -3,7 +3,7 @@ using ApiControlePerifericos.Interfaces;
 
 namespace ApiControlePerifericos.Repositories
 {
-    public class UnityOfWork : IUnityOfWork
+    public class UnitOfWork : IUnitOfWork
     {
         private IProdutoRepository? _produtoRepo;
         private IColaboradorRepository? _colaboradorRepo;
@@ -11,7 +11,7 @@ namespace ApiControlePerifericos.Repositories
 
         public AppDbContext _context;
 
-        public UnityOfWork(AppDbContext context)
+        public UnitOfWork(AppDbContext context)
         {
             _context = context;
         }

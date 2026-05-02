@@ -8,12 +8,15 @@ namespace ApiControlePerifericos.Repositories
     {
         public MovimentacaoRepository(AppDbContext context) : base(context)
         {
+
         }
-        public IEnumerable<Movimentacao> GetMovimentacoesPorProduto(int produtoId)
+
+        public IEnumerable<Movimentacao> GetByProdutoId(int produtoId)
         {
             return _context.Movimentacoes.Where(m => m.ProdutoId == produtoId).ToList();
         }
-        public IEnumerable<Movimentacao> GetMovimentacoesPorColaborador(int colaboradorId)
+
+        public IEnumerable<Movimentacao> GetByColaboradorId(int colaboradorId)
         {
             return _context.Movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
         }

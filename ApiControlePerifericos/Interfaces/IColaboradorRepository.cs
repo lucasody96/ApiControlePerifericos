@@ -2,7 +2,7 @@
 
 namespace ApiControlePerifericos.Interfaces
 {
-    public interface IColaboradorRepository: IRepository<Colaborador>
+    public interface IColaboradorRepository : IRepository<Colaborador>
     {
 
     }

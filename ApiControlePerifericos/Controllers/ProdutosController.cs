@@ -12,12 +12,12 @@ namespace ApiControlePerifericos.Controllers
     [ApiController]
     public class ProdutosController: ControllerBase
     {
-        private readonly IUnityOfWork _uof;
+        private readonly IUnitOfWork _uof;
         private readonly ILogger<ProdutosController> _logger;
         private readonly IMapper _mapper;
 
 
-        public ProdutosController(IUnityOfWork uof, ILogger<ProdutosController> logger, IMapper mapper)
+        public ProdutosController(IUnitOfWork uof, ILogger<ProdutosController> logger, IMapper mapper)
         {
             _uof = uof;
             _logger = logger;

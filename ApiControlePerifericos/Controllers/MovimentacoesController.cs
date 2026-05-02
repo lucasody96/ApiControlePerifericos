@@ -11,11 +11,11 @@ namespace ApiControlePerifericos.Controllers
     [Route("api/[controller]")]
     public class MovimentacoesController : ControllerBase
     {
-        private readonly IUnityOfWork _uof;
+        private readonly IUnitOfWork _uof;
         private readonly ILogger<MovimentacoesController> _logger;
         private readonly IMapper _mapper;
 
-        public MovimentacoesController(IUnityOfWork uof, ILogger<MovimentacoesController> logger, IMapper mapper)
+        public MovimentacoesController(IUnitOfWork uof, ILogger<MovimentacoesController> logger, IMapper mapper)
         {
             _uof = uof;
             _logger = logger;
