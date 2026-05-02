@@ -30,6 +30,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogInformation("Nenhum produto encontrado.");
                 return NotFound("Nenhum produto encontrado.");
             }
+
             var produtosDTO = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
             return Ok(produtosDTO);
         }
@@ -43,6 +44,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Produto com ID {Id} não encontrado.", id);
                 return NotFound($"Produto com ID {id} não encontrado.");
             }
+
             var produtoDTO = _mapper.Map<ProdutoDTO>(produto);
             return Ok(produtoDTO);
         }
@@ -55,6 +57,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Dados do produto inválidos.");
                 return BadRequest("Dados do produto inválidos.");
             }
+
             var produto = _mapper.Map<Produto>(produtoDTO);
             var novoProduto = _uof.ProdutoRepository.Create(produto);
             _uof.Commit();
@@ -71,9 +74,11 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Dados do produto inválidos ou produto não encontrado.");
                 return BadRequest("Dados do produto inválidos ou produto não encontrado.");
             }
+
             var produto = _mapper.Map<Produto>(produtoDTO);
             var produtoAtualizado = _uof.ProdutoRepository.Update(produto);
             _uof.Commit();
+
             var produtoAtualizadoDTO = _mapper.Map<ProdutoDTO>(produtoAtualizado);
             return Ok(produtoAtualizadoDTO);
         }

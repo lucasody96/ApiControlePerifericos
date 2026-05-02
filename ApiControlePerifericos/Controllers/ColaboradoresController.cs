@@ -30,6 +30,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogInformation("Nenhum colaborador encontrado.");
                 return NotFound("Nenhum colaborador encontrado.");
             }
+
             var colaboradoresDTO = _mapper.Map<IEnumerable<ColaboradorDTO>>(colaboradores);
             return Ok(colaboradoresDTO);
         }
@@ -43,6 +44,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Colaborador com ID {Id} não encontrado.", id);
                 return NotFound($"Colaborador com ID {id} não encontrado.");
             }
+
             var colaboradorDTO = _mapper.Map<ColaboradorDTO>(colaborador);
             return Ok(colaboradorDTO);
         }
@@ -55,6 +57,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Dados do colaborador inválidos.");
                 return BadRequest("Dados do colaborador inválidos.");
             }
+
             var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
             var novoColaborador = _uof.ColaboradorRepository.Create(colaborador);
             _uof.Commit();
@@ -73,9 +76,9 @@ namespace ApiControlePerifericos.Controllers
             }
 
             var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
-            var colaboradorAtualizado = _uof.ColaboradorRepository.Update(colaborador);     
-
+            var colaboradorAtualizado = _uof.ColaboradorRepository.Update(colaborador);
             _uof.Commit();
+
             var colaboradorAtualizadoDTO = _mapper.Map<ColaboradorDTO>(colaboradorAtualizado);
             return Ok(colaboradorAtualizadoDTO);
         }

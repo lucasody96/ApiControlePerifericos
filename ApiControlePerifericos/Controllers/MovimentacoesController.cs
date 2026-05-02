@@ -25,7 +25,6 @@ namespace ApiControlePerifericos.Controllers
         public ActionResult<IEnumerable<MovimentacaoDTO>> Get()
         {
             var movimentacoes = _uof.MovimentacaoRepository.GetAll();
-
             if (movimentacoes is null || !movimentacoes.Any())
             {
                 _logger.LogInformation("Nenhuma movimentação encontrada.");
@@ -45,6 +44,7 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
                 return NotFound($"Movimentação com ID {id} não encontrada.");
             }
+
             var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(movimentacao);
             return Ok(movimentacaoDTO);
         }
@@ -57,9 +57,11 @@ namespace ApiControlePerifericos.Controllers
                 _logger.LogWarning("Dados da movimentação inválidos.");
                 return BadRequest("Dados da movimentação inválidos.");
             }
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO); 
+
+            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var novaMovimentacao = _uof.MovimentacaoRepository.Create(movimentacao);
             _uof.Commit();
+
             var novaMovimentacaoDTO = _mapper.Map<MovimentacaoDTO>(novaMovimentacao);
             return CreatedAtRoute("ObterMovimentacao", new { id = novaMovimentacaoDTO.MovimentacaoId }, novaMovimentacaoDTO);
         }
@@ -76,6 +78,7 @@ namespace ApiControlePerifericos.Controllers
             var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var movimentacaoAtualizada = _uof.MovimentacaoRepository.Update(movimentacao);
             _uof.Commit();
+
             var movimentacaoAtualizadaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoAtualizada);
             return Ok(movimentacaoAtualizadaDTO);
         }
@@ -92,6 +95,7 @@ namespace ApiControlePerifericos.Controllers
 
             var movimentacaoExcluida = _uof.MovimentacaoRepository.Delete(movimentacao);
             _uof.Commit();
+
             var movimentacaoExcluidaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluida);
             return Ok(movimentacaoExcluidaDTO);
         }
