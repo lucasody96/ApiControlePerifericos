@@ -54,7 +54,7 @@ namespace ApiControlePerifericos.Controllers
         {
             if (movimentacaoDTO is null)
             {
-                _logger.LogWarning($"Dados da movimentação inválidos.");
+                _logger.LogWarning("Dados da movimentação inválidos.");
                 return BadRequest("Dados da movimentação inválidos.");
             }
             var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO); 
@@ -69,7 +69,7 @@ namespace ApiControlePerifericos.Controllers
         {
             if (movimentacaoDTO is null || movimentacaoDTO.MovimentacaoId != id)
             {
-                _logger.LogWarning($"Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
+                _logger.LogWarning("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
                 return BadRequest("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
             }
 
