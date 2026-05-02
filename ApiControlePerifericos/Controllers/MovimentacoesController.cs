@@ -2,7 +2,6 @@
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using AutoMapper;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiControlePerifericos.Controllers
@@ -23,11 +22,10 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Movimentacao>> Get()
+        public ActionResult<IEnumerable<MovimentacaoDTO>> Get()
         {
             var movimentacoes = _uof.MovimentacaoRepository.GetAll();
-
-            if (movimentacoes == null || !movimentacoes.Any())
+            if (movimentacoes is null || !movimentacoes.Any())
             {
                 _logger.LogInformation("Nenhuma movimentação encontrada.");
                 return NotFound("Nenhuma movimentação encontrada.");
@@ -43,40 +41,44 @@ namespace ApiControlePerifericos.Controllers
             var movimentacao = _uof.MovimentacaoRepository.Get(m => m.MovimentacaoId == id);
             if (movimentacao is null)
             {
-                _logger.LogWarning($"Movimentação com ID {id} não encontrada.");
+                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
                 return NotFound($"Movimentação com ID {id} não encontrada.");
             }
+
             var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(movimentacao);
             return Ok(movimentacaoDTO);
         }
 
         [HttpPost]
-        public ActionResult<MovimentacaoDTO> Post(MovimentacaoDTO movimentacaoDto)
+        public ActionResult<MovimentacaoDTO> Post(MovimentacaoDTO movimentacaoDTO)
         {
-            if (movimentacaoDto is null)
+            if (movimentacaoDTO is null)
             {
-                _logger.LogWarning($"Dados da movimentação inválidos.");
+                _logger.LogWarning("Dados da movimentação inválidos.");
                 return BadRequest("Dados da movimentação inválidos.");
             }
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDto); 
+
+            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var novaMovimentacao = _uof.MovimentacaoRepository.Create(movimentacao);
             _uof.Commit();
+
             var novaMovimentacaoDTO = _mapper.Map<MovimentacaoDTO>(novaMovimentacao);
             return CreatedAtRoute("ObterMovimentacao", new { id = novaMovimentacaoDTO.MovimentacaoId }, novaMovimentacaoDTO);
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<MovimentacaoDTO> Put(int id, MovimentacaoDTO movimentacaoDto)
+        public ActionResult<MovimentacaoDTO> Put(int id, MovimentacaoDTO movimentacaoDTO)
         {
-            if (movimentacaoDto is null || movimentacaoDto.MovimentacaoId != id)
+            if (movimentacaoDTO is null || movimentacaoDTO.MovimentacaoId != id)
             {
-                _logger.LogWarning($"Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
+                _logger.LogWarning("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
                 return BadRequest("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
             }
 
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDto);
+            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var movimentacaoAtualizada = _uof.MovimentacaoRepository.Update(movimentacao);
             _uof.Commit();
+
             var movimentacaoAtualizadaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoAtualizada);
             return Ok(movimentacaoAtualizadaDTO);
         }
@@ -87,14 +89,15 @@ namespace ApiControlePerifericos.Controllers
             var movimentacao = _uof.MovimentacaoRepository.Get(m => m.MovimentacaoId == id);
             if (movimentacao is null)
             {
-                _logger.LogWarning($"Movimentação com ID {id} não encontrada.");
+                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
                 return NotFound($"Movimentação com ID {id} não encontrada.");
             }
 
-            var movimentacaoExcluída = _uof.MovimentacaoRepository.Delete(movimentacao);
+            var movimentacaoExcluida = _uof.MovimentacaoRepository.Delete(movimentacao);
             _uof.Commit();
-            var movimentacaoExcluídaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluída);
-            return Ok(movimentacaoExcluídaDTO);
+
+            var movimentacaoExcluidaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluida);
+            return Ok(movimentacaoExcluidaDTO);
         }
     }
 }
