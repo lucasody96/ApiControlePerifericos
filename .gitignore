@@ -10,4 +10,5 @@
 
 # Outros arquivos temporários
 *.log
+Log.txt
 .vscode/
