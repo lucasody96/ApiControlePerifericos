@@ -48,14 +48,14 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
-        public ActionResult<ColaboradorDTO> Post(ColaboradorDTO colaboradorDto)
+        public ActionResult<ColaboradorDTO> Post(ColaboradorDTO colaboradorDTO)
         {
-            if (colaboradorDto is null)
+            if (colaboradorDTO is null)
             {
                 _logger.LogWarning($"Dados do colaborador inválidos.");
                 return BadRequest("Dados do colaborador inválidos.");
             }
-            var colaborador = _mapper.Map<Colaborador>(colaboradorDto);
+            var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
             var novoColaborador = _uof.ColaboradorRepository.Create(colaborador);
             _uof.Commit();
 
@@ -64,15 +64,15 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<ColaboradorDTO> Put(int id, ColaboradorDTO colaboradorDto)
+        public ActionResult<ColaboradorDTO> Put(int id, ColaboradorDTO colaboradorDTO)
         {
-            if (colaboradorDto is null || id != colaboradorDto.ColaboradorId)
+            if (colaboradorDTO is null || id != colaboradorDTO.ColaboradorId)
             {
                 _logger.LogWarning($"Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
                 return BadRequest("Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
             }
 
-            var colaborador = _mapper.Map<Colaborador>(colaboradorDto);
+            var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
             var colaboradorAtualizado = _uof.ColaboradorRepository.Update(colaborador);     
 
             _uof.Commit();

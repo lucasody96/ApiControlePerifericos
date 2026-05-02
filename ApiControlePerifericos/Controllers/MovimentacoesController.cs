@@ -50,14 +50,14 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
-        public ActionResult<MovimentacaoDTO> Post(MovimentacaoDTO movimentacaoDto)
+        public ActionResult<MovimentacaoDTO> Post(MovimentacaoDTO movimentacaoDTO)
         {
-            if (movimentacaoDto is null)
+            if (movimentacaoDTO is null)
             {
                 _logger.LogWarning($"Dados da movimentação inválidos.");
                 return BadRequest("Dados da movimentação inválidos.");
             }
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDto); 
+            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO); 
             var novaMovimentacao = _uof.MovimentacaoRepository.Create(movimentacao);
             _uof.Commit();
             var novaMovimentacaoDTO = _mapper.Map<MovimentacaoDTO>(novaMovimentacao);
@@ -65,15 +65,15 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<MovimentacaoDTO> Put(int id, MovimentacaoDTO movimentacaoDto)
+        public ActionResult<MovimentacaoDTO> Put(int id, MovimentacaoDTO movimentacaoDTO)
         {
-            if (movimentacaoDto is null || movimentacaoDto.MovimentacaoId != id)
+            if (movimentacaoDTO is null || movimentacaoDTO.MovimentacaoId != id)
             {
                 _logger.LogWarning($"Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
                 return BadRequest("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
             }
 
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDto);
+            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var movimentacaoAtualizada = _uof.MovimentacaoRepository.Update(movimentacao);
             _uof.Commit();
             var movimentacaoAtualizadaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoAtualizada);
