@@ -13,10 +13,14 @@ namespace ApiControlePerifericos.Models
         [Required]
         [StringLength(300)]
         public string? Descricao { get; set; }
+
+        [Range(0, int.MaxValue)]
         public int SaldoAtual { get; set; }
+
+        [Range(0, int.MaxValue)]
         public int EstoqueMinimo { get; set; }
 
         [JsonIgnore]
-        public ICollection<Movimentacao>? Movimentacoes { get; set; }
+        public ICollection<Movimentacao> Movimentacoes { get; set; } = [];
     }
 }

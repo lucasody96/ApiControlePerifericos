@@ -12,9 +12,9 @@ namespace ApiControlePerifericos.Models
 
         [Required]
         [StringLength(80)]
-        public string? Nome { get; set; } 
+        public string? Nome { get; set; }
 
         [JsonIgnore]
-        public ICollection<Movimentacao>? Movimentacoes { get; set; }
+        public ICollection<Movimentacao> Movimentacoes { get; set; } = [];
     }
 }

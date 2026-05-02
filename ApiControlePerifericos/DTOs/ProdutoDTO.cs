@@ -10,7 +10,10 @@ namespace ApiControlePerifericos.DTOs
         [StringLength(300)]
         public string? Descricao { get; set; }
 
-        public int SaldoAtual { get; set; }     
-        public int EstoqueMinimo { get; set; }          
+        [Range(0, int.MaxValue)]
+        public int SaldoAtual { get; set; }
+
+        [Range(0, int.MaxValue)]
+        public int EstoqueMinimo { get; set; }
     }
 }
