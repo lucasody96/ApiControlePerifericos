@@ -40,7 +40,7 @@ namespace ApiControlePerifericos.Controllers
             var colaborador = _uof.ColaboradorRepository.Get(c => c.ColaboradorId == id);
             if (colaborador is null)
             {
-                _logger.LogWarning($"Colaborador com ID {id} não encontrado.");
+                _logger.LogWarning("Colaborador com ID {Id} não encontrado.", id);
                 return NotFound($"Colaborador com ID {id} não encontrado.");
             }
             var colaboradorDTO = _mapper.Map<ColaboradorDTO>(colaborador);
@@ -86,7 +86,7 @@ namespace ApiControlePerifericos.Controllers
             var colaborador = _uof.ColaboradorRepository.Get(c => c.ColaboradorId == id);
             if (colaborador is null)
             {
-                _logger.LogWarning($"Colaborador com ID {id} não encontrado.");
+                _logger.LogWarning("Colaborador com ID {Id} não encontrado.", id);
                 return NotFound($"Colaborador com ID {id} não encontrado.");
             }
 

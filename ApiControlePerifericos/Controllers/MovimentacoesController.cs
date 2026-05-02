@@ -42,7 +42,7 @@ namespace ApiControlePerifericos.Controllers
             var movimentacao = _uof.MovimentacaoRepository.Get(m => m.MovimentacaoId == id);
             if (movimentacao is null)
             {
-                _logger.LogWarning($"Movimentação com ID {id} não encontrada.");
+                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
                 return NotFound($"Movimentação com ID {id} não encontrada.");
             }
             var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(movimentacao);
@@ -86,7 +86,7 @@ namespace ApiControlePerifericos.Controllers
             var movimentacao = _uof.MovimentacaoRepository.Get(m => m.MovimentacaoId == id);
             if (movimentacao is null)
             {
-                _logger.LogWarning($"Movimentação com ID {id} não encontrada.");
+                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
                 return NotFound($"Movimentação com ID {id} não encontrada.");
             }
 

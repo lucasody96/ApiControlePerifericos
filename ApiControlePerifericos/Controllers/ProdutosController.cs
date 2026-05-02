@@ -40,7 +40,7 @@ namespace ApiControlePerifericos.Controllers
             var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
             if (produto is null)
             {
-                _logger.LogWarning($"Produto com ID {id} não encontrado.");
+                _logger.LogWarning("Produto com ID {Id} não encontrado.", id);
                 return NotFound($"Produto com ID {id} não encontrado.");
             }
             var produtoDTO = _mapper.Map<ProdutoDTO>(produto);
@@ -84,7 +84,7 @@ namespace ApiControlePerifericos.Controllers
             var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
             if (produto is null)
             {
-                _logger.LogWarning($"Produto com ID {id} não encontrado.");
+                _logger.LogWarning("Produto com ID {Id} não encontrado.", id);
                 return NotFound($"Produto com ID {id} não encontrado.");
             }
 
