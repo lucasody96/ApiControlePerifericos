@@ -4,7 +4,7 @@ using ApiControlePerifericos.Models;
 
 namespace ApiControlePerifericos.Repositories
 {
-    public class MovimentacaoRepository: Repository<Movimentacao>, IMovimentacaoRepository
+    public class MovimentacaoRepository : Repository<Movimentacao>, IMovimentacaoRepository
     {
         public MovimentacaoRepository(AppDbContext context) : base(context)
         {

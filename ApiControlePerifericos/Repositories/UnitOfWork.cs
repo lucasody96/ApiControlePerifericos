@@ -9,7 +9,7 @@ namespace ApiControlePerifericos.Repositories
         private IColaboradorRepository? _colaboradorRepo;
         private IMovimentacaoRepository? _movimentacaoRepo; 
 
-        public AppDbContext _context;
+        private AppDbContext _context;
 
         public UnitOfWork(AppDbContext context)
         {
@@ -46,11 +46,6 @@ namespace ApiControlePerifericos.Repositories
         public void Commit()
         {
             _context.SaveChanges();
-        }
-
-        public void Dispose()
-        {
-            _context.Dispose();
         }
     }
 }
