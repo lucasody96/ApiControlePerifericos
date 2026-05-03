@@ -32,7 +32,7 @@
 
         private void EscreverTextoNoArquivo(string mensagem)
         {
-            using StreamWriter streamWriter = new(_loggerConfig.LogPath, true);
+            using var streamWriter = new StreamWriter(_loggerConfig.LogPath, true);
             streamWriter.WriteLine(mensagem);
         }
     }
