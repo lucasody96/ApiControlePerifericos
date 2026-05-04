@@ -1,6 +1,7 @@
 ﻿using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 
 namespace ApiControlePerifericos.Repositories
 {
@@ -10,7 +11,14 @@ namespace ApiControlePerifericos.Repositories
         {
 
         }
+        public PagedList<Produto> GetProdutos(ProdutosParameters produtosParams)
+        {
+            var produtos = _context.Produtos.AsQueryable();
 
-        //Não há métodos específicos para Produto além dos genéricos implementados na classe base Repository<T>.
+            var produtosOrdenados = PagedList<Produto>.ToPagedList(produtos, produtosParams.PageNumber, produtosParams.PageSize);
+            return produtosOrdenados;
+        }
+
+        //pensar num futuro filter por ID ou descrição do produto
     }
 }

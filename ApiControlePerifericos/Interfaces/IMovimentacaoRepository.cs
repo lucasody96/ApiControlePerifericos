@@ -1,4 +1,5 @@
 ﻿using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 
 namespace ApiControlePerifericos.Interfaces
 {
@@ -6,5 +7,7 @@ namespace ApiControlePerifericos.Interfaces
     {
         IEnumerable<Movimentacao> GetByProdutoId(int produtoId);
         IEnumerable<Movimentacao> GetByColaboradorId(int colaboradorId);
+
+        PagedList<Movimentacao> GetMovimentacoes(MovimentacoesParameters movimentacoesParams);
     }
 }

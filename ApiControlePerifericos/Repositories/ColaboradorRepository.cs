@@ -1,6 +1,7 @@
 ﻿using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 
 namespace ApiControlePerifericos.Repositories
 {
@@ -11,6 +12,15 @@ namespace ApiControlePerifericos.Repositories
 
         }
 
-        //Não há métodos específicos para Colaborador além dos genéricos implementados na classe base Repository<T>.
+        public PagedList<Colaborador> GetColaboradores(ColaboradoresParameters colaboradoresParams)
+        {
+            var colaboradores = _context.Colaboradores.AsQueryable();
+
+            var colaboradoresOrdenados = PagedList<Colaborador>.ToPagedList(colaboradores, colaboradoresParams.PageNumber, colaboradoresParams.PageSize);
+            return colaboradoresOrdenados;
+        }
+
+        //Pensar num futuro filter por ID ou nome
+
     }
 }

@@ -1,8 +1,10 @@
 ﻿using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace ApiControlePerifericos.Controllers
 {
@@ -47,6 +49,30 @@ namespace ApiControlePerifericos.Controllers
 
             var colaboradorDTO = _mapper.Map<ColaboradorDTO>(colaborador);
             return Ok(colaboradorDTO);
+        }
+
+        [HttpGet("pagination")]
+        public ActionResult<IEnumerable<ColaboradorDTO>> Get([FromQuery] ColaboradoresParameters colaboradoresParameters)
+        {
+            var colaboradores = _uof.ColaboradorRepository.GetColaboradores(colaboradoresParameters);
+            return ObterColaboradores(colaboradores);
+        }
+
+        private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(PagedList<Colaborador> colaboradores)
+        {
+            var metadata = new
+            {
+                colaboradores.TotalCount,
+                colaboradores.PageSize,
+                colaboradores.CurrentPage,
+                colaboradores.TotalPages,
+                colaboradores.HasNext,
+                colaboradores.HasPrevious
+            };
+
+            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+            var colaboradoresDto = _mapper.Map<IEnumerable<ColaboradorDTO>>(colaboradores);
+            return Ok(colaboradoresDto);
         }
 
         [HttpPost]

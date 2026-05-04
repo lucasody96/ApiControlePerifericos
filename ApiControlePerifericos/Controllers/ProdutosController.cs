@@ -1,8 +1,10 @@
 ﻿using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace ApiControlePerifericos.Controllers
 {
@@ -47,6 +49,32 @@ namespace ApiControlePerifericos.Controllers
 
             var produtoDTO = _mapper.Map<ProdutoDTO>(produto);
             return Ok(produtoDTO);
+        }
+
+        [HttpGet("pagination")]
+        public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters)
+        {
+            var produtos = _uof.ProdutoRepository.GetProdutos(produtosParameters);
+            return ObterProdutos(produtos);
+        }
+
+        private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(PagedList<Produto> produtos)
+        {
+            //Método privado extraído para usar nos futuros filters
+            var metadata = new
+            {
+                produtos.TotalCount,
+                produtos.PageSize,
+                produtos.CurrentPage,
+                produtos.TotalPages,
+                produtos.HasNext,
+                produtos.HasPrevious
+            };
+
+            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+
+            var produtosDTO = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+            return Ok(produtosDTO);
         }
 
         [HttpPost]

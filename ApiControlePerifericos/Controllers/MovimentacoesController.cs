@@ -1,8 +1,10 @@
 ﻿using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace ApiControlePerifericos.Controllers
 {
@@ -47,6 +49,30 @@ namespace ApiControlePerifericos.Controllers
 
             var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(movimentacao);
             return Ok(movimentacaoDTO);
+        }
+
+        [HttpGet("pagination")]
+        public ActionResult<IEnumerable<MovimentacaoDTO>> Get([FromQuery] MovimentacoesParameters movimentacoesParameters)
+        {
+            var movimentacoes = _uof.MovimentacaoRepository.GetMovimentacoes(movimentacoesParameters);
+            return ObterMovimentacoes(movimentacoes);
+        }
+
+        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(PagedList<Movimentacao> movimentacoes)
+        {
+            var metadata = new
+            {
+                movimentacoes.TotalCount,
+                movimentacoes.PageSize,
+                movimentacoes.CurrentPage,
+                movimentacoes.TotalPages,
+                movimentacoes.HasNext,
+                movimentacoes.HasPrevious
+            };
+
+            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+            var movimentacoesDto = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
+            return Ok(movimentacoesDto);
         }
 
         [HttpPost]

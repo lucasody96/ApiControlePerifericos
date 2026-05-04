@@ -1,6 +1,7 @@
 ﻿using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 
 namespace ApiControlePerifericos.Repositories
 {
@@ -20,5 +21,15 @@ namespace ApiControlePerifericos.Repositories
         {
             return _context.Movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
         }
+
+        public PagedList<Movimentacao> GetMovimentacoes(MovimentacoesParameters movimentacoesParams)
+        {
+            var movimentacoes = _context.Movimentacoes.AsQueryable();
+
+            var movimentacoesOrdenadas = PagedList<Movimentacao>.ToPagedList(movimentacoes, movimentacoesParams.PageNumber, movimentacoesParams.PageSize);
+            return movimentacoesOrdenadas;
+        }
+
+        //Futuramente pensar num filter por data, ou mesmo por produto ou colaborador
     }
 }
