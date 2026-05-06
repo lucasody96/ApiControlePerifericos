@@ -25,7 +25,7 @@
             if (!IsEnabled(logLevel))
                 return;
 
-            string mensagem = $"{logLevel}: {eventId.Id} - {formatter(state, exception)}";
+            var mensagem = $"{logLevel}: {eventId.Id} - {formatter(state, exception)}";
 
             EscreverTextoNoArquivo(mensagem);
         }
