@@ -15,7 +15,7 @@
             AddRange(items);
             TotalCount = totalCount;
             CurrentPage = currentPage;
-            PageSize = pageSize;
+            PageSize = Math.Max(pageSize, 1);
             TotalPages = (TotalCount + PageSize - 1) / PageSize;
         }
 
