@@ -1,4 +1,4 @@
-﻿using ApiControlePerifericos.Context;
+using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
@@ -14,12 +14,13 @@ namespace ApiControlePerifericos.Repositories
         {
 
         }
-        public async Task<IPagedList<Produto>> GetProdutosAsync(ProdutosParameters produtosParams)
+
+        public async Task<IPagedList<Produto>> GetProdutosAsync(ProdutosParameters parameters)
         {
             var produtosOrdenados = _context.Set<Produto>()
                                             .OrderBy(p => p.ProdutoId);
 
-            var resultado = produtosOrdenados.ToPagedList(produtosParams.PageNumber, produtosParams.PageSize);
+            var resultado = produtosOrdenados.ToPagedList(parameters.PageNumber, parameters.PageSize);
 
             return await Task.FromResult(resultado);
         }

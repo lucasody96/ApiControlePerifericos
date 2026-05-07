@@ -52,9 +52,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters movimentacoesParameters)
+        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters parameters)
         {
-            var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(movimentacoesParameters);
+            var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(parameters);
             return ObterMovimentacoes(movimentacoes);
         }
 

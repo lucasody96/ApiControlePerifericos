@@ -52,9 +52,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
+        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters parameters)
         {
-            var produtos = await _uof.ProdutoRepository.GetProdutosAsync(produtosParameters);
+            var produtos = await _uof.ProdutoRepository.GetProdutosAsync(parameters);
             return ObterProdutos(produtos);
         }
 

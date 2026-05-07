@@ -52,9 +52,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get([FromQuery] ColaboradoresParameters colaboradoresParameters)
+        public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get([FromQuery] ColaboradoresParameters parameters)
         {
-            var colaboradores = await _uof.ColaboradorRepository.GetColaboradoresAsync(colaboradoresParameters);
+            var colaboradores = await _uof.ColaboradorRepository.GetColaboradoresAsync(parameters);
             return ObterColaboradores(colaboradores);
         }
 
