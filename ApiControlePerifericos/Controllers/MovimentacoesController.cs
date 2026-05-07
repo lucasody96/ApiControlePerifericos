@@ -71,8 +71,9 @@ namespace ApiControlePerifericos.Controllers
             };
 
             Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
-            var movimentacoesDto = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
-            return Ok(movimentacoesDto);
+
+            var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
+            return Ok(movimentacoesDTO);
         }
 
         [HttpPost]
