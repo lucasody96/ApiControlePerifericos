@@ -16,7 +16,7 @@
             TotalCount = totalCount;
             CurrentPage = currentPage;
             PageSize = pageSize;
-            TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
+            TotalPages = (TotalCount + PageSize - 1) / PageSize;
         }
 
         public static PagedList<T> ToPagedList(IQueryable<T> query, int currentPage, int pageSize)
