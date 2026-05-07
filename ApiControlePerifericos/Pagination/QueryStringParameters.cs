@@ -4,7 +4,12 @@
     {
         private const int MaxPageSize = 50;
 
-        public int PageNumber { get; set; } = 1;
+        private int _pageNumber = 1;
+        public int PageNumber
+        {
+            get { return _pageNumber; }
+            set { _pageNumber = Math.Max(value, 1); }
+        }
 
         private int _pageSize = MaxPageSize;
         public int PageSize
