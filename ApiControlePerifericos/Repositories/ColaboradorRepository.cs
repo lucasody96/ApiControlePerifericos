@@ -26,5 +26,7 @@ namespace ApiControlePerifericos.Repositories
 
             return await Task.FromResult(colaboradoresPaginados);
         }
+
+        // TODO - Filtrar por ID ou Nome
     }
 }

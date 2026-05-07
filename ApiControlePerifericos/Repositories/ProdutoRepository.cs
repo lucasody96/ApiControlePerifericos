@@ -25,6 +25,6 @@ namespace ApiControlePerifericos.Repositories
             return await Task.FromResult(resultado);
         }
 
-        //pensar num futuro filter por ID ou descrição do produto
+        // TODO - Filtrar por ID ou Descrição
     }
 }

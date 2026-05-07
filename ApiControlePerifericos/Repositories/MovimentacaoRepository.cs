@@ -43,6 +43,6 @@ namespace ApiControlePerifericos.Repositories
             return await Task.FromResult(resultado);
         }
 
-        //Futuramente pensar num filter por data, ou mesmo por produto ou colaborador
+        // TODO - Filtrar por Data, Produto ou Colaborador
     }
 }
