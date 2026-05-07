@@ -60,6 +60,7 @@ namespace ApiControlePerifericos.Controllers
 
         private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(X.PagedList.IPagedList<Colaborador> colaboradores)
         {
+            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 colaboradores.Count,

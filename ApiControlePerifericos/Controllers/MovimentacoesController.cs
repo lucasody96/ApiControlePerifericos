@@ -60,6 +60,7 @@ namespace ApiControlePerifericos.Controllers
 
         private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(X.PagedList.IPagedList<Movimentacao> movimentacoes)
         {
+            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 movimentacoes.Count,

@@ -60,7 +60,7 @@ namespace ApiControlePerifericos.Controllers
 
         private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(X.PagedList.IPagedList<Produto> produtos)
         {
-            //Método privado extraído para usar nos futuros filters
+            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 produtos.Count,
