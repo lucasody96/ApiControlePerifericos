@@ -98,7 +98,7 @@ namespace ApiControlePerifericos.Controllers
         [HttpPut("{id:int}")]
         public async Task<ActionResult<ColaboradorDTO>> Put(int id, ColaboradorDTO colaboradorDTO)
         {
-            if (colaboradorDTO is null || id != colaboradorDTO.ColaboradorId)
+            if (colaboradorDTO is null || colaboradorDTO.ColaboradorId != id)
             {
                 _logger.LogWarning("Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
                 return BadRequest("Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
