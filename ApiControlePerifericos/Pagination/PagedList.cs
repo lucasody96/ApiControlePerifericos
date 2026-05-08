@@ -2,28 +2,31 @@
 {
     public class PagedList<T> : List<T> where T : class
     {
-        public int CurrentPage { get; private set; }
-        public int TotalPages { get; private set; }
-        public int PageSize { get; private set; }
-        public int TotalCount { get; private set; }
+        public int CurrentPage { get; }
+        public int TotalPages { get; }
+        public int PageSize { get; }
+        public int TotalCount { get; }
 
-        public bool HasPrevious => CurrentPage > 1;
+        public bool HasPrevious => CurrentPage > 1 && TotalPages > 0;
         public bool HasNext => CurrentPage < TotalPages;
 
-        public PagedList(List<T> items, int count, int pageNumber, int pageSize)
+        public PagedList(List<T> items, int totalCount, int currentPage, int pageSize)
         {
-            TotalCount = count;
-            PageSize = pageSize;
-            CurrentPage = pageNumber;
-            TotalPages = (int)Math.Ceiling(count / (double)pageSize);
             AddRange(items);
+            TotalCount = totalCount;
+            CurrentPage = currentPage;
+            PageSize = Math.Max(pageSize, 1);
+            TotalPages = (TotalCount + PageSize - 1) / PageSize;
         }
 
-        public static PagedList<T> ToPagedList(IQueryable<T> source, int pageNumber, int pageSize)
+        public static PagedList<T> ToPagedList(IQueryable<T> query, int currentPage, int pageSize)
         {
-            var count = source.Count();
-            var items = source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-            return new PagedList<T>(items, count, pageNumber, pageSize);
+            var totalCount = query.Count();
+            var items = query
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+            return new PagedList<T>(items, totalCount, currentPage, pageSize);
         }
     }
 }

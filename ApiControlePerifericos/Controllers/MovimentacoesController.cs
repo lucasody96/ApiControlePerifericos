@@ -52,14 +52,15 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters movimentacoesParameters)
+        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters parameters)
         {
-            var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(movimentacoesParameters);
+            var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(parameters);
             return ObterMovimentacoes(movimentacoes);
         }
 
         private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(X.PagedList.IPagedList<Movimentacao> movimentacoes)
         {
+            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 movimentacoes.Count,
@@ -71,8 +72,9 @@ namespace ApiControlePerifericos.Controllers
             };
 
             Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
-            var movimentacoesDto = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
-            return Ok(movimentacoesDto);
+
+            var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
+            return Ok(movimentacoesDTO);
         }
 
         [HttpPost]

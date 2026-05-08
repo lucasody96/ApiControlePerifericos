@@ -52,15 +52,15 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
+        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters parameters)
         {
-            var produtos = await _uof.ProdutoRepository.GetProdutosAsync(produtosParameters);
+            var produtos = await _uof.ProdutoRepository.GetProdutosAsync(parameters);
             return ObterProdutos(produtos);
         }
 
         private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(X.PagedList.IPagedList<Produto> produtos)
         {
-            //Método privado extraído para usar nos futuros filters
+            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 produtos.Count,

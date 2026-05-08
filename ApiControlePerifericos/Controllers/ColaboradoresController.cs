@@ -52,14 +52,15 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get([FromQuery] ColaboradoresParameters colaboradoresParameters)
+        public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get([FromQuery] ColaboradoresParameters parameters)
         {
-            var colaboradores = await _uof.ColaboradorRepository.GetColaboradoresAsync(colaboradoresParameters);
+            var colaboradores = await _uof.ColaboradorRepository.GetColaboradoresAsync(parameters);
             return ObterColaboradores(colaboradores);
         }
 
         private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(X.PagedList.IPagedList<Colaborador> colaboradores)
         {
+            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 colaboradores.Count,
@@ -71,8 +72,9 @@ namespace ApiControlePerifericos.Controllers
             };
 
             Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
-            var colaboradoresDto = _mapper.Map<IEnumerable<ColaboradorDTO>>(colaboradores);
-            return Ok(colaboradoresDto);
+
+            var colaboradoresDTO = _mapper.Map<IEnumerable<ColaboradorDTO>>(colaboradores);
+            return Ok(colaboradoresDTO);
         }
 
         [HttpPost]
