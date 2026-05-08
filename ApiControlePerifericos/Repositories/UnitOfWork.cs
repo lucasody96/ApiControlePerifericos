@@ -5,8 +5,8 @@ namespace ApiControlePerifericos.Repositories
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private IProdutoRepository? _produtoRepo;
         private IColaboradorRepository? _colaboradorRepo;
+        private IProdutoRepository? _produtoRepo;
         private IMovimentacaoRepository? _movimentacaoRepo; 
 
         private AppDbContext _context;
