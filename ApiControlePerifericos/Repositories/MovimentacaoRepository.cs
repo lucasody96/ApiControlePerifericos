@@ -30,7 +30,7 @@ namespace ApiControlePerifericos.Repositories
 
             var movimentacoesLocalizadas = movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
 
-            return movimentacoes;
+            return movimentacoesLocalizadas;
         }
 
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)
