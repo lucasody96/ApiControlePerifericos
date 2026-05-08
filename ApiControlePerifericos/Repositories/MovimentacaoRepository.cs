@@ -38,9 +38,9 @@ namespace ApiControlePerifericos.Repositories
             var movimentacoesOrdenadas = _context.Set<Movimentacao>()
                                                  .OrderByDescending(m => m.DataMovimentacao);
 
-            var resultado = movimentacoesOrdenadas.ToPagedList(parameters.PageNumber, parameters.PageSize);
+            var movimentacoesPaginadas = movimentacoesOrdenadas.ToPagedList(parameters.PageNumber, parameters.PageSize);
 
-            return await Task.FromResult(resultado);
+            return await Task.FromResult(movimentacoesPaginadas);
         }
 
         // TODO - Filtrar por Data, Produto ou Colaborador

@@ -20,9 +20,9 @@ namespace ApiControlePerifericos.Repositories
             var produtosOrdenados = _context.Set<Produto>()
                                             .OrderBy(p => p.ProdutoId);
 
-            var resultado = produtosOrdenados.ToPagedList(parameters.PageNumber, parameters.PageSize);
+            var produtosPaginados = produtosOrdenados.ToPagedList(parameters.PageNumber, parameters.PageSize);
 
-            return await Task.FromResult(resultado);
+            return await Task.FromResult(produtosPaginados);
         }
 
         // TODO - Filtrar por ID ou Descrição
