@@ -25,16 +25,14 @@
             if (!IsEnabled(logLevel))
                 return;
 
-            string mensagem = $"{logLevel}: {eventId.Id} - {formatter(state, exception)}";
+            var mensagem = $"{logLevel}: {eventId.Id} - {formatter(state, exception)}";
 
             EscreverTextoNoArquivo(mensagem);
         }
 
-        private static void EscreverTextoNoArquivo(string mensagem)
+        private void EscreverTextoNoArquivo(string mensagem)
         {
-            const string caminhoArquivoLog = @"C:\Projetos\ControleHardwaresCoworking\WebApi\ApiControlePerifericos\Log.txt";
-
-            using StreamWriter streamWriter = new(caminhoArquivoLog, true);
+            using var streamWriter = new StreamWriter(_loggerConfig.LogPath, true);
             streamWriter.WriteLine(mensagem);
         }
     }

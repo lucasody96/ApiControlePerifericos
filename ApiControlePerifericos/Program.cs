@@ -20,7 +20,7 @@ builder.Services.AddControllers(options =>
 });
 builder.Services.AddOpenApi();
 
-string? mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+var mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(mySqlConnection, ServerVersion.AutoDetect(mySqlConnection)));
