@@ -2,7 +2,6 @@ using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
-
 using X.PagedList;
 using X.PagedList.Extensions;
 
