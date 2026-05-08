@@ -1,11 +1,12 @@
 ﻿using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using X.PagedList;
 
 namespace ApiControlePerifericos.Interfaces
 {
     public interface IColaboradorRepository : IRepository<Colaborador>
     {
-        PagedList<Colaborador> GetColaboradores(ColaboradoresParameters colaboradoresParams);
+        Task<IPagedList<Colaborador>> GetColaboradoresAsync(ColaboradoresParameters colaboradoresParams);
 
     }
 }

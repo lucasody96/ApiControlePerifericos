@@ -3,6 +3,9 @@ using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
 
+using X.PagedList;
+using X.PagedList.Extensions;
+
 namespace ApiControlePerifericos.Repositories
 {
     public class MovimentacaoRepository : Repository<Movimentacao>, IMovimentacaoRepository
@@ -12,22 +15,32 @@ namespace ApiControlePerifericos.Repositories
 
         }
 
-        public IEnumerable<Movimentacao> GetByProdutoId(int produtoId)
+        public async Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId)
         {
-            return _context.Movimentacoes.Where(m => m.ProdutoId == produtoId).ToList();
+            var movimentacoes = await GetAllAsync();
+
+            var movimentacoesLocalizadas = movimentacoes.Where(m => m.ProdutoId == produtoId).ToList();
+
+            return movimentacoesLocalizadas;
         }
 
-        public IEnumerable<Movimentacao> GetByColaboradorId(int colaboradorId)
+        public async Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId)
         {
-            return _context.Movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
+            var movimentacoes = await GetAllAsync();
+
+            var movimentacoesLocalizadas = movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
+
+            return movimentacoes;
         }
 
-        public PagedList<Movimentacao> GetMovimentacoes(MovimentacoesParameters movimentacoesParams)
+        public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters movimentacoesParams)
         {
-            var movimentacoes = _context.Movimentacoes.AsQueryable();
+            var movimentacoesOrdenadas = _context.Set<Movimentacao>()
+                                                 .OrderByDescending(m => m.DataMovimentacao);
 
-            var movimentacoesOrdenadas = PagedList<Movimentacao>.ToPagedList(movimentacoes, movimentacoesParams.PageNumber, movimentacoesParams.PageSize);
-            return movimentacoesOrdenadas;
+            var resultado = movimentacoesOrdenadas.ToPagedList(movimentacoesParams.PageNumber, movimentacoesParams.PageSize);
+
+            return await Task.FromResult(resultado);
         }
 
         //Futuramente pensar num filter por data, ou mesmo por produto ou colaborador

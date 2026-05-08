@@ -24,9 +24,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<MovimentacaoDTO>> Get()
+        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get()
         {
-            var movimentacoes = _uof.MovimentacaoRepository.GetAll();
+            var movimentacoes = await _uof.MovimentacaoRepository.GetAllAsync();
             if (movimentacoes is null || !movimentacoes.Any())
             {
                 _logger.LogInformation("Nenhuma movimentação encontrada.");
@@ -38,9 +38,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("{id}", Name = "ObterMovimentacao")]
-        public ActionResult<MovimentacaoDTO> Get(int id)
+        public async Task<ActionResult<MovimentacaoDTO>> Get(int id)
         {
-            var movimentacao = _uof.MovimentacaoRepository.Get(m => m.MovimentacaoId == id);
+            var movimentacao = await _uof.MovimentacaoRepository.GetAsync(m => m.MovimentacaoId == id);
             if (movimentacao is null)
             {
                 _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
@@ -52,22 +52,22 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public ActionResult<IEnumerable<MovimentacaoDTO>> Get([FromQuery] MovimentacoesParameters movimentacoesParameters)
+        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters movimentacoesParameters)
         {
-            var movimentacoes = _uof.MovimentacaoRepository.GetMovimentacoes(movimentacoesParameters);
+            var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(movimentacoesParameters);
             return ObterMovimentacoes(movimentacoes);
         }
 
-        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(PagedList<Movimentacao> movimentacoes)
+        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(X.PagedList.IPagedList<Movimentacao> movimentacoes)
         {
             var metadata = new
             {
-                movimentacoes.TotalCount,
+                movimentacoes.Count,
                 movimentacoes.PageSize,
-                movimentacoes.CurrentPage,
-                movimentacoes.TotalPages,
-                movimentacoes.HasNext,
-                movimentacoes.HasPrevious
+                movimentacoes.PageCount,
+                movimentacoes.TotalItemCount,
+                movimentacoes.HasNextPage,
+                movimentacoes.HasPreviousPage
             };
 
             Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
@@ -76,7 +76,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
-        public ActionResult<MovimentacaoDTO> Post(MovimentacaoDTO movimentacaoDTO)
+        public async Task<ActionResult<MovimentacaoDTO>> Post(MovimentacaoDTO movimentacaoDTO)
         {
             if (movimentacaoDTO is null)
             {
@@ -86,14 +86,14 @@ namespace ApiControlePerifericos.Controllers
 
             var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var novaMovimentacao = _uof.MovimentacaoRepository.Create(movimentacao);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var novaMovimentacaoDTO = _mapper.Map<MovimentacaoDTO>(novaMovimentacao);
             return CreatedAtRoute("ObterMovimentacao", new { id = novaMovimentacaoDTO.MovimentacaoId }, novaMovimentacaoDTO);
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<MovimentacaoDTO> Put(int id, MovimentacaoDTO movimentacaoDTO)
+        public async Task<ActionResult<MovimentacaoDTO>> Put(int id, MovimentacaoDTO movimentacaoDTO)
         {
             if (movimentacaoDTO is null || movimentacaoDTO.MovimentacaoId != id)
             {
@@ -103,16 +103,16 @@ namespace ApiControlePerifericos.Controllers
 
             var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var movimentacaoAtualizada = _uof.MovimentacaoRepository.Update(movimentacao);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var movimentacaoAtualizadaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoAtualizada);
             return Ok(movimentacaoAtualizadaDTO);
         }
 
         [HttpDelete("{id:int}")]
-        public ActionResult<MovimentacaoDTO> Delete(int id)
+        public async Task<ActionResult<MovimentacaoDTO>> Delete(int id)
         {
-            var movimentacao = _uof.MovimentacaoRepository.Get(m => m.MovimentacaoId == id);
+            var movimentacao = await _uof.MovimentacaoRepository.GetAsync(m => m.MovimentacaoId == id);
             if (movimentacao is null)
             {
                 _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
@@ -120,7 +120,7 @@ namespace ApiControlePerifericos.Controllers
             }
 
             var movimentacaoExcluida = _uof.MovimentacaoRepository.Delete(movimentacao);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var movimentacaoExcluidaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluida);
             return Ok(movimentacaoExcluidaDTO);

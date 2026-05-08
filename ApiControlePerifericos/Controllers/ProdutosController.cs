@@ -24,9 +24,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<ProdutoDTO>> Get()
+        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
         {
-            var produtos = _uof.ProdutoRepository.GetAll();
+            var produtos = await _uof.ProdutoRepository.GetAllAsync();
             if (produtos is null || !produtos.Any())
             {
                 _logger.LogInformation("Nenhum produto encontrado.");
@@ -38,9 +38,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("{id}", Name = "ObterProduto")]
-        public ActionResult<ProdutoDTO> Get(int id)
+        public async Task<ActionResult<ProdutoDTO>> Get(int id)
         {
-            var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
+            var produto = await _uof.ProdutoRepository.GetAsync(p => p.ProdutoId == id);
             if (produto is null)
             {
                 _logger.LogWarning("Produto com ID {Id} não encontrado.", id);
@@ -52,23 +52,23 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters)
+        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
         {
-            var produtos = _uof.ProdutoRepository.GetProdutos(produtosParameters);
+            var produtos = await _uof.ProdutoRepository.GetProdutosAsync(produtosParameters);
             return ObterProdutos(produtos);
         }
 
-        private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(PagedList<Produto> produtos)
+        private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(X.PagedList.IPagedList<Produto> produtos)
         {
             //Método privado extraído para usar nos futuros filters
             var metadata = new
             {
-                produtos.TotalCount,
+                produtos.Count,
                 produtos.PageSize,
-                produtos.CurrentPage,
-                produtos.TotalPages,
-                produtos.HasNext,
-                produtos.HasPrevious
+                produtos.PageCount,
+                produtos.TotalItemCount,
+                produtos.HasNextPage,
+                produtos.HasPreviousPage
             };
 
             Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
@@ -78,7 +78,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
-        public ActionResult<ProdutoDTO> Post(ProdutoDTO produtoDTO)
+        public async Task<ActionResult<ProdutoDTO>> Post(ProdutoDTO produtoDTO)
         {
             if (produtoDTO is null)
             {
@@ -88,14 +88,14 @@ namespace ApiControlePerifericos.Controllers
 
             var produto = _mapper.Map<Produto>(produtoDTO);
             var novoProduto = _uof.ProdutoRepository.Create(produto);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var novoProdutoDTO = _mapper.Map<ProdutoDTO>(novoProduto);
             return CreatedAtRoute("ObterProduto", new { id = novoProdutoDTO.ProdutoId }, novoProdutoDTO);
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<ProdutoDTO> Put(int id, ProdutoDTO produtoDTO)
+        public async Task<ActionResult<ProdutoDTO>> Put(int id, ProdutoDTO produtoDTO)
         {
             if (produtoDTO is null || produtoDTO.ProdutoId != id)
             {
@@ -105,16 +105,16 @@ namespace ApiControlePerifericos.Controllers
 
             var produto = _mapper.Map<Produto>(produtoDTO);
             var produtoAtualizado = _uof.ProdutoRepository.Update(produto);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var produtoAtualizadoDTO = _mapper.Map<ProdutoDTO>(produtoAtualizado);
             return Ok(produtoAtualizadoDTO);
         }
 
         [HttpDelete("{id:int}")]
-        public ActionResult<ProdutoDTO> Delete(int id)
+        public async Task<ActionResult<ProdutoDTO>> Delete(int id)
         {
-            var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
+            var produto = await _uof.ProdutoRepository.GetAsync(p => p.ProdutoId == id);
             if (produto is null)
             {
                 _logger.LogWarning("Produto com ID {Id} não encontrado.", id);
@@ -122,7 +122,7 @@ namespace ApiControlePerifericos.Controllers
             }
 
             var produtoExcluido = _uof.ProdutoRepository.Delete(produto);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var produtoExcluidoDTO = _mapper.Map<ProdutoDTO>(produtoExcluido);
             return Ok(produtoExcluidoDTO);

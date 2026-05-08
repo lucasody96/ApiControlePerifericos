@@ -1,13 +1,14 @@
 ﻿using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using X.PagedList;
 
 namespace ApiControlePerifericos.Interfaces
 {
     public interface IMovimentacaoRepository : IRepository<Movimentacao>
     {
-        IEnumerable<Movimentacao> GetByProdutoId(int produtoId);
-        IEnumerable<Movimentacao> GetByColaboradorId(int colaboradorId);
+        Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId);
+        Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId);
 
-        PagedList<Movimentacao> GetMovimentacoes(MovimentacoesParameters movimentacoesParams);
+        Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters movimentacoesParams);
     }
 }

@@ -24,9 +24,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<ColaboradorDTO>> Get()
+        public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get()
         {
-            var colaboradores = _uof.ColaboradorRepository.GetAll();
+            var colaboradores = await _uof.ColaboradorRepository.GetAllAsync();
             if (colaboradores is null || !colaboradores.Any())
             {
                 _logger.LogInformation("Nenhum colaborador encontrado.");
@@ -38,9 +38,9 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("{id}", Name = "ObterColaborador")]
-        public ActionResult<ColaboradorDTO> Get(int id)
+        public async Task<ActionResult<ColaboradorDTO>> Get(int id)
         {
-            var colaborador = _uof.ColaboradorRepository.Get(c => c.ColaboradorId == id);
+            var colaborador = await _uof.ColaboradorRepository.GetAsync(c => c.ColaboradorId == id);
             if (colaborador is null)
             {
                 _logger.LogWarning("Colaborador com ID {Id} não encontrado.", id);
@@ -52,22 +52,22 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
-        public ActionResult<IEnumerable<ColaboradorDTO>> Get([FromQuery] ColaboradoresParameters colaboradoresParameters)
+        public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get([FromQuery] ColaboradoresParameters colaboradoresParameters)
         {
-            var colaboradores = _uof.ColaboradorRepository.GetColaboradores(colaboradoresParameters);
+            var colaboradores = await _uof.ColaboradorRepository.GetColaboradoresAsync(colaboradoresParameters);
             return ObterColaboradores(colaboradores);
         }
 
-        private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(PagedList<Colaborador> colaboradores)
+        private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(X.PagedList.IPagedList<Colaborador> colaboradores)
         {
             var metadata = new
             {
-                colaboradores.TotalCount,
+                colaboradores.Count,
                 colaboradores.PageSize,
-                colaboradores.CurrentPage,
-                colaboradores.TotalPages,
-                colaboradores.HasNext,
-                colaboradores.HasPrevious
+                colaboradores.PageCount,
+                colaboradores.TotalItemCount,
+                colaboradores.HasNextPage,
+                colaboradores.HasPreviousPage
             };
 
             Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
@@ -76,7 +76,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
-        public ActionResult<ColaboradorDTO> Post(ColaboradorDTO colaboradorDTO)
+        public async Task<ActionResult<ColaboradorDTO>> Post(ColaboradorDTO colaboradorDTO)
         {
             if (colaboradorDTO is null)
             {
@@ -86,14 +86,14 @@ namespace ApiControlePerifericos.Controllers
 
             var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
             var novoColaborador = _uof.ColaboradorRepository.Create(colaborador);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var novoColaboradorDTO = _mapper.Map<ColaboradorDTO>(novoColaborador);
             return CreatedAtRoute("ObterColaborador", new { id = novoColaboradorDTO.ColaboradorId }, novoColaboradorDTO);
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<ColaboradorDTO> Put(int id, ColaboradorDTO colaboradorDTO)
+        public async Task<ActionResult<ColaboradorDTO>> Put(int id, ColaboradorDTO colaboradorDTO)
         {
             if (colaboradorDTO is null || id != colaboradorDTO.ColaboradorId)
             {
@@ -103,16 +103,16 @@ namespace ApiControlePerifericos.Controllers
 
             var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
             var colaboradorAtualizado = _uof.ColaboradorRepository.Update(colaborador);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var colaboradorAtualizadoDTO = _mapper.Map<ColaboradorDTO>(colaboradorAtualizado);
             return Ok(colaboradorAtualizadoDTO);
         }
 
         [HttpDelete("{id:int}")]
-        public ActionResult<ColaboradorDTO> Delete(int id)
+        public async Task<ActionResult<ColaboradorDTO>> Delete(int id)
         {
-            var colaborador = _uof.ColaboradorRepository.Get(c => c.ColaboradorId == id);
+            var colaborador = await _uof.ColaboradorRepository.GetAsync(c => c.ColaboradorId == id);
             if (colaborador is null)
             {
                 _logger.LogWarning("Colaborador com ID {Id} não encontrado.", id);
@@ -120,7 +120,7 @@ namespace ApiControlePerifericos.Controllers
             }
 
             var colaboradorExcluido = _uof.ColaboradorRepository.Delete(colaborador);
-            _uof.Commit();
+            await _uof.CommitAsync();
 
             var colaboradorExcluidoDTO = _mapper.Map<ColaboradorDTO>(colaboradorExcluido);
             return Ok(colaboradorExcluidoDTO);

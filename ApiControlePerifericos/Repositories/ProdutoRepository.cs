@@ -3,6 +3,9 @@ using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
 
+using X.PagedList;
+using X.PagedList.Extensions;
+
 namespace ApiControlePerifericos.Repositories
 {
     public class ProdutoRepository : Repository<Produto>, IProdutoRepository
@@ -11,12 +14,14 @@ namespace ApiControlePerifericos.Repositories
         {
 
         }
-        public PagedList<Produto> GetProdutos(ProdutosParameters produtosParams)
+        public async Task<IPagedList<Produto>> GetProdutosAsync(ProdutosParameters produtosParams)
         {
-            var produtos = _context.Produtos.AsQueryable();
+            var produtosOrdenados = _context.Set<Produto>()
+                                            .OrderBy(p => p.ProdutoId);
 
-            var produtosOrdenados = PagedList<Produto>.ToPagedList(produtos, produtosParams.PageNumber, produtosParams.PageSize);
-            return produtosOrdenados;
+            var resultado = produtosOrdenados.ToPagedList(produtosParams.PageNumber, produtosParams.PageSize);
+
+            return await Task.FromResult(resultado);
         }
 
         //pensar num futuro filter por ID ou descrição do produto

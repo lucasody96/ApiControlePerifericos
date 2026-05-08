@@ -2,6 +2,9 @@
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using X.PagedList;
+using X.PagedList.Extensions;
+
 
 namespace ApiControlePerifericos.Repositories
 {
@@ -12,15 +15,16 @@ namespace ApiControlePerifericos.Repositories
 
         }
 
-        public PagedList<Colaborador> GetColaboradores(ColaboradoresParameters colaboradoresParams)
+        public async Task<IPagedList<Colaborador>> GetColaboradoresAsync(ColaboradoresParameters colaboradoresParams)
         {
-            var colaboradores = _context.Colaboradores.AsQueryable();
+            // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
+            // permite que a paginação seja feita diretamente no banco de dados.
+            var colaboradoresOrdenados = _context.Set<Colaborador>()
+                                                 .OrderBy(c => c.ColaboradorId);
 
-            var colaboradoresOrdenados = PagedList<Colaborador>.ToPagedList(colaboradores, colaboradoresParams.PageNumber, colaboradoresParams.PageSize);
-            return colaboradoresOrdenados;
+            var colaboradoresPaginados = colaboradoresOrdenados.ToPagedList(colaboradoresParams.PageNumber, colaboradoresParams.PageSize);
+
+            return await Task.FromResult(colaboradoresPaginados);
         }
-
-        //Pensar num futuro filter por ID ou nome
-
     }
 }
