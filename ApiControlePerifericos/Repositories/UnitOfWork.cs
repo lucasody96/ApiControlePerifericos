@@ -7,7 +7,7 @@ namespace ApiControlePerifericos.Repositories
     {
         private IColaboradorRepository? _colaboradorRepo;
         private IProdutoRepository? _produtoRepo;
-        private IMovimentacaoRepository? _movimentacaoRepo; 
+        private IMovimentacaoRepository? _movimentacaoRepo;
 
         private AppDbContext _context;
 
@@ -22,14 +22,14 @@ namespace ApiControlePerifericos.Repositories
             get
             {
                 return _colaboradorRepo ??= new ColaboradorRepository(_context);
-                //Mesma coisa que 
+                // Mesma coisa que:
                 // return _colaboradorRepo = _colaboradorRepo ?? new ColaboradorRepository(_context);
             }
         }
 
         public IProdutoRepository ProdutoRepository
         {
-            get 
+            get
             {
                 return _produtoRepo ??= new ProdutoRepository(_context);
             }
