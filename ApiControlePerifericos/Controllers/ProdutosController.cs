@@ -100,8 +100,8 @@ namespace ApiControlePerifericos.Controllers
         {
             if (produtoDTO is null || produtoDTO.ProdutoId != id)
             {
-                _logger.LogWarning("Dados do produto inválidos ou produto não encontrado.");
-                return BadRequest("Dados do produto inválidos ou produto não encontrado.");
+                _logger.LogWarning("Dados do produto inválidos ou ID do produto não corresponde ao ID fornecido.");
+                return BadRequest("Dados do produto inválidos ou ID do produto não corresponde ao ID fornecido.");
             }
 
             var produto = _mapper.Map<Produto>(produtoDTO);
