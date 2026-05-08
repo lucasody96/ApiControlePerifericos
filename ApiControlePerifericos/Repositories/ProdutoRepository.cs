@@ -16,6 +16,8 @@ namespace ApiControlePerifericos.Repositories
 
         public async Task<IPagedList<Produto>> GetProdutosAsync(ProdutosParameters parameters)
         {
+            // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
+            // permite que a paginação seja feita diretamente no banco de dados.
             var produtosOrdenados = _context.Set<Produto>()
                                             .OrderBy(p => p.ProdutoId);
 

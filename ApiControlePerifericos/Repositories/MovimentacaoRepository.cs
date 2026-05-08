@@ -34,6 +34,8 @@ namespace ApiControlePerifericos.Repositories
 
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)
         {
+            // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
+            // permite que a paginação seja feita diretamente no banco de dados.
             var movimentacoesOrdenadas = _context.Set<Movimentacao>()
                                                  .OrderByDescending(m => m.DataMovimentacao);
 
