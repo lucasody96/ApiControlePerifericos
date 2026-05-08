@@ -5,6 +5,7 @@ using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using X.PagedList;
 
 namespace ApiControlePerifericos.Controllers
 {
@@ -58,7 +59,7 @@ namespace ApiControlePerifericos.Controllers
             return ObterColaboradores(colaboradores);
         }
 
-        private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(X.PagedList.IPagedList<Colaborador> colaboradores)
+        private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(IPagedList<Colaborador> colaboradores)
         {
             // TODO - Extrair a montagem do metadata para um método
             var metadata = new

@@ -5,6 +5,7 @@ using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using X.PagedList;
 
 namespace ApiControlePerifericos.Controllers
 {
@@ -58,7 +59,7 @@ namespace ApiControlePerifericos.Controllers
             return ObterMovimentacoes(movimentacoes);
         }
 
-        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(X.PagedList.IPagedList<Movimentacao> movimentacoes)
+        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(IPagedList<Movimentacao> movimentacoes)
         {
             // TODO - Extrair a montagem do metadata para um método
             var metadata = new

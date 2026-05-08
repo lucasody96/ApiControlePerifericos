@@ -2,7 +2,6 @@ using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
-
 using X.PagedList;
 using X.PagedList.Extensions;
 
@@ -30,17 +29,19 @@ namespace ApiControlePerifericos.Repositories
 
             var movimentacoesLocalizadas = movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
 
-            return movimentacoes;
+            return movimentacoesLocalizadas;
         }
 
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)
         {
+            // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
+            // permite que a paginação seja feita diretamente no banco de dados.
             var movimentacoesOrdenadas = _context.Set<Movimentacao>()
                                                  .OrderByDescending(m => m.DataMovimentacao);
 
-            var resultado = movimentacoesOrdenadas.ToPagedList(parameters.PageNumber, parameters.PageSize);
+            var movimentacoesPaginadas = movimentacoesOrdenadas.ToPagedList(parameters.PageNumber, parameters.PageSize);
 
-            return await Task.FromResult(resultado);
+            return await Task.FromResult(movimentacoesPaginadas);
         }
 
         // TODO - Filtrar por Data, Produto ou Colaborador

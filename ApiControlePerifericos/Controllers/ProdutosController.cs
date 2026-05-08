@@ -5,6 +5,7 @@ using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using X.PagedList;
 
 namespace ApiControlePerifericos.Controllers
 {
@@ -58,7 +59,7 @@ namespace ApiControlePerifericos.Controllers
             return ObterProdutos(produtos);
         }
 
-        private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(X.PagedList.IPagedList<Produto> produtos)
+        private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(IPagedList<Produto> produtos)
         {
             // TODO - Extrair a montagem do metadata para um método
             var metadata = new

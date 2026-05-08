@@ -5,7 +5,6 @@ using ApiControlePerifericos.Pagination;
 using X.PagedList;
 using X.PagedList.Extensions;
 
-
 namespace ApiControlePerifericos.Repositories
 {
     public class ColaboradorRepository : Repository<Colaborador>, IColaboradorRepository
