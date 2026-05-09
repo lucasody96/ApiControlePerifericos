@@ -1,5 +1,5 @@
-﻿using AutoMapper;
-using ApiControlePerifericos.Models;
+﻿using ApiControlePerifericos.Models;
+using AutoMapper;
 
 namespace ApiControlePerifericos.DTOs.Mappings
 {

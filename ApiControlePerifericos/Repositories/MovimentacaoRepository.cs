@@ -18,18 +18,14 @@ namespace ApiControlePerifericos.Repositories
         {
             var movimentacoes = await GetAllAsync();
 
-            var movimentacoesLocalizadas = movimentacoes.Where(m => m.ProdutoId == produtoId).ToList();
-
-            return movimentacoesLocalizadas;
+            return movimentacoes.Where(m => m.ProdutoId == produtoId).ToList();
         }
 
         public async Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId)
         {
             var movimentacoes = await GetAllAsync();
 
-            var movimentacoesLocalizadas = movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
-
-            return movimentacoesLocalizadas;
+            return movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
         }
 
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)
