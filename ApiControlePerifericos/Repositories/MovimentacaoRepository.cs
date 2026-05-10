@@ -2,6 +2,7 @@ using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using Microsoft.EntityFrameworkCore;
 using X.PagedList;
 using X.PagedList.Extensions;
 
@@ -16,16 +17,18 @@ namespace ApiControlePerifericos.Repositories
 
         public async Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId)
         {
-            var movimentacoes = await GetAllAsync();
-
-            return movimentacoes.Where(m => m.ProdutoId == produtoId).ToList();
+            return await _context.Set<Movimentacao>()
+                                 .Where(m => m.ProdutoId == produtoId)
+                                 .AsNoTracking()
+                                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId)
         {
-            var movimentacoes = await GetAllAsync();
-
-            return movimentacoes.Where(m => m.ColaboradorId == colaboradorId).ToList();
+            return await _context.Set<Movimentacao>()
+                                 .Where(m => m.ColaboradorId == colaboradorId)
+                                 .AsNoTracking()
+                                 .ToListAsync();
         }
 
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)

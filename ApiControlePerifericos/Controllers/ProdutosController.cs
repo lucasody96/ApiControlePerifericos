@@ -104,6 +104,13 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados do produto inválidos ou ID do produto não corresponde ao ID fornecido.");
             }
 
+            var existe = await _uof.ProdutoRepository.GetAsync(p => p.ProdutoId == id);
+            if (existe is null)
+            {
+                _logger.LogWarning("Produto com ID {Id} não encontrado.", id);
+                return NotFound($"Produto com ID {id} não encontrado.");
+            }
+
             var produto = _mapper.Map<Produto>(produtoDTO);
             var produtoAtualizado = _uof.ProdutoRepository.Update(produto);
             await _uof.CommitAsync();
