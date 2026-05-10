@@ -104,6 +104,13 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
             }
 
+            var existe = await _uof.MovimentacaoRepository.GetAsync(m => m.MovimentacaoId == id);
+            if (existe is null)
+            {
+                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
+                return NotFound($"Movimentação com ID {id} não encontrada.");
+            }
+
             var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
             var movimentacaoAtualizada = _uof.MovimentacaoRepository.Update(movimentacao);
             await _uof.CommitAsync();

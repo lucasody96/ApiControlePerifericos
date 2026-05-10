@@ -104,6 +104,13 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados do colaborador inválidos ou ID do colaborador não corresponde ao ID fornecido.");
             }
 
+            var existe = await _uof.ColaboradorRepository.GetAsync(c => c.ColaboradorId == id);
+            if (existe is null)
+            {
+                _logger.LogWarning("Colaborador com ID {Id} não encontrado.", id);
+                return NotFound($"Colaborador com ID {id} não encontrado.");
+            }
+
             var colaborador = _mapper.Map<Colaborador>(colaboradorDTO);
             var colaboradorAtualizado = _uof.ColaboradorRepository.Update(colaborador);
             await _uof.CommitAsync();
