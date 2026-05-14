@@ -12,3 +12,7 @@
 *.log
 Log.txt
 .vscode/
+
+# Configurações locais do Claude Code (pessoais, não compartilhar)
+.claude/settings.local.json
+CLAUDE.md
