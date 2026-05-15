@@ -43,6 +43,8 @@ builder.Services.AddAutoMapper(config =>
     config.AddProfile<MappingProfile>();
 });
 
+builder.Services.AddAuthentication("Bearer").AddJwtBearer();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
