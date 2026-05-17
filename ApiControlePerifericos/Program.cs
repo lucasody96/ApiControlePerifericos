@@ -4,6 +4,7 @@ using ApiControlePerifericos.Filters;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Logging;
 using ApiControlePerifericos.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
@@ -19,6 +20,10 @@ builder.Services.AddControllers(options =>
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 builder.Services.AddOpenApi();
+
+builder.Services.AddIdentity<IdentityUser, IdentityRole>().
+    AddEntityFrameworkStores<AppDbContext>().
+    AddDefaultTokenProviders();
 
 var mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 
