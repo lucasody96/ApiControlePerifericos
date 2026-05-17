@@ -3,6 +3,7 @@ using ApiControlePerifericos.DTOs.Mappings;
 using ApiControlePerifericos.Filters;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Logging;
+using ApiControlePerifericos.Models.Identity;
 using ApiControlePerifericos.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ builder.Services.AddControllers(options =>
 });
 builder.Services.AddOpenApi();
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>().
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>().
     AddEntityFrameworkStores<AppDbContext>().
     AddDefaultTokenProviders();
 
