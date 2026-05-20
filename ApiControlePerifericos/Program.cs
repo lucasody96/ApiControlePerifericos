@@ -5,6 +5,7 @@ using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Logging;
 using ApiControlePerifericos.Models.Identity;
 using ApiControlePerifericos.Repositories;
+using ApiControlePerifericos.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +64,7 @@ builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderConfiguration
 {
@@ -73,8 +75,6 @@ builder.Services.AddAutoMapper(config =>
 {
     config.AddProfile<MappingProfile>();
 });
-
-builder.Services.AddAuthentication("Bearer").AddJwtBearer();
 
 var app = builder.Build();
 
