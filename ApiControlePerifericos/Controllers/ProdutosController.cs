@@ -3,6 +3,7 @@ using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using X.PagedList;
@@ -78,6 +79,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(produtosDTO);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ProdutoDTO>> Post(ProdutoDTO produtoDTO)
         {
@@ -95,6 +97,7 @@ namespace ApiControlePerifericos.Controllers
             return CreatedAtRoute("ObterProduto", new { id = novoProdutoDTO.ProdutoId }, novoProdutoDTO);
         }
 
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<ProdutoDTO>> Put(int id, ProdutoDTO produtoDTO)
         {
@@ -119,6 +122,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(produtoAtualizadoDTO);
         }
 
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<ActionResult<ProdutoDTO>> Delete(int id)
         {
