@@ -18,16 +18,43 @@ namespace ApiControlePerifericos.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(ITokenService tokenService,
                               UserManager<ApplicationUser> userManager,
                               RoleManager<IdentityRole> roleManager,
-                              IConfiguration configuration)
+                              IConfiguration configuration,
+                              ILogger<AuthController> logger)
         {
             _tokenService = tokenService;
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
+            _logger = logger;
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [Route("CreateRole")]
+        public async Task<IActionResult> CreateRole(string roleName)
+        {
+            if (string.IsNullOrWhiteSpace(roleName))
+                return BadRequest(new Response { Status = "Error", Message = "O nome da role é obrigatório." });
+
+            if (await _roleManager.RoleExistsAsync(roleName))
+                return Conflict(new Response { Status = "Error", Message = "A role já existe!" });
+
+            var roleResult = await _roleManager.CreateAsync(new IdentityRole(roleName));
+
+            if (!roleResult.Succeeded)
+            {
+                _logger.LogError("Falha ao criar a role {RoleName}: {Errors}",
+                    roleName, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                return StatusCode(StatusCodes.Status400BadRequest, new Response { Status = "Error", Message = "Falha ao criar a role!" });
+            }
+
+            _logger.LogInformation("Role {RoleName} criada com sucesso.", roleName);
+            return Ok(new Response { Status = "Success", Message = $"A role {roleName} foi criada com sucesso." });
         }
 
         [HttpPost]

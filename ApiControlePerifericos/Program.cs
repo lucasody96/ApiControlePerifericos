@@ -78,6 +78,42 @@ builder.Services.AddAutoMapper(config =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+
+    if (!await roleManager.RoleExistsAsync("Admin"))
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+    var adminUserName = builder.Configuration["Seed:AdminUserName"];
+    var adminEmail = builder.Configuration["Seed:AdminEmail"];
+    var adminPassword = builder.Configuration["Seed:AdminPassword"];
+
+    if (string.IsNullOrWhiteSpace(adminUserName) || string.IsNullOrWhiteSpace(adminPassword))
+    {
+        app.Logger.LogWarning("Seed do usuário Admin ignorado: configure Seed:AdminUserName e Seed:AdminPassword (User Secrets).");
+    }
+    else if (await userManager.FindByNameAsync(adminUserName) is null)
+    {
+        var admin = new ApplicationUser
+        {
+            UserName = adminUserName,
+            Email = adminEmail,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+
+        var result = await userManager.CreateAsync(admin, adminPassword);
+
+        if (result.Succeeded)
+            await userManager.AddToRoleAsync(admin, "Admin");
+        else
+            app.Logger.LogError("Falha ao criar usuário Admin no seed: {Errors}",
+                string.Join(", ", result.Errors.Select(e => e.Description)));
+    }
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
