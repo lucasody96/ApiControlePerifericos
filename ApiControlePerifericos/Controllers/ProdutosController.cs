@@ -26,6 +26,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
         {
             var produtos = await _uof.ProdutoRepository.GetAllAsync();
@@ -40,6 +41,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("{id}", Name = "ObterProduto")]
+        [Authorize]
         public async Task<ActionResult<ProdutoDTO>> Get(int id)
         {
             var produto = await _uof.ProdutoRepository.GetAsync(p => p.ProdutoId == id);
@@ -54,6 +56,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters parameters)
         {
             var produtos = await _uof.ProdutoRepository.GetProdutosAsync(parameters);
@@ -79,7 +82,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(produtosDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<ActionResult<ProdutoDTO>> Post(ProdutoDTO produtoDTO)
         {
@@ -97,7 +100,7 @@ namespace ApiControlePerifericos.Controllers
             return CreatedAtRoute("ObterProduto", new { id = novoProdutoDTO.ProdutoId }, novoProdutoDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<ProdutoDTO>> Put(int id, ProdutoDTO produtoDTO)
         {
@@ -122,8 +125,9 @@ namespace ApiControlePerifericos.Controllers
             return Ok(produtoAtualizadoDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("{id:int}")]
+
         public async Task<ActionResult<ProdutoDTO>> Delete(int id)
         {
             var produto = await _uof.ProdutoRepository.GetAsync(p => p.ProdutoId == id);

@@ -26,6 +26,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get()
         {
             var colaboradores = await _uof.ColaboradorRepository.GetAllAsync();
@@ -40,6 +41,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("{id}", Name = "ObterColaborador")]
+        [Authorize]
         public async Task<ActionResult<ColaboradorDTO>> Get(int id)
         {
             var colaborador = await _uof.ColaboradorRepository.GetAsync(c => c.ColaboradorId == id);
@@ -54,6 +56,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ColaboradorDTO>>> Get([FromQuery] ColaboradoresParameters parameters)
         {
             var colaboradores = await _uof.ColaboradorRepository.GetColaboradoresAsync(parameters);
@@ -79,7 +82,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(colaboradoresDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<ActionResult<ColaboradorDTO>> Post(ColaboradorDTO colaboradorDTO)
         {
@@ -97,7 +100,7 @@ namespace ApiControlePerifericos.Controllers
             return CreatedAtRoute("ObterColaborador", new { id = novoColaboradorDTO.ColaboradorId }, novoColaboradorDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<ColaboradorDTO>> Put(int id, ColaboradorDTO colaboradorDTO)
         {
@@ -122,8 +125,8 @@ namespace ApiControlePerifericos.Controllers
             return Ok(colaboradorAtualizadoDTO);
         }
 
-        [Authorize]
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<ActionResult<ColaboradorDTO>> Delete(int id)
         {
             var colaborador = await _uof.ColaboradorRepository.GetAsync(c => c.ColaboradorId == id);

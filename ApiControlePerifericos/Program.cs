@@ -74,6 +74,17 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+
+    // Super admins: usuário Admin cujo claim "id" seja um dos valores autorizados.
+    options.AddPolicy("SuperAdminOnly", policy =>
+        policy.RequireRole("Admin").RequireClaim("id", "lucas.ody", "admin"));
+
+    options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+});
+
 var mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -109,30 +120,47 @@ using (var scope = app.Services.CreateScope())
     if (!await roleManager.RoleExistsAsync("Admin"))
         await roleManager.CreateAsync(new IdentityRole("Admin"));
 
-    var adminUserName = builder.Configuration["Seed:AdminUserName"];
-    var adminEmail = builder.Configuration["Seed:AdminEmail"];
-    var adminPassword = builder.Configuration["Seed:AdminPassword"];
+    if (!await roleManager.RoleExistsAsync("User"))
+        await roleManager.CreateAsync(new IdentityRole("User"));
 
-    if (string.IsNullOrWhiteSpace(adminUserName) || string.IsNullOrWhiteSpace(adminPassword))
+    // Lê a lista de admins de Seed:AdminUsers; se vazia, cai no formato antigo (chaves únicas Seed:Admin*).
+    var adminUsers = builder.Configuration.GetSection("Seed:AdminUsers").GetChildren()
+        .Select(c => (UserName: c["UserName"], Email: c["Email"], Password: c["Password"]))
+        .ToList();
+
+    if (adminUsers.Count == 0)
     {
-        app.Logger.LogWarning("Seed do usuário Admin ignorado: configure Seed:AdminUserName e Seed:AdminPassword (User Secrets).");
+        adminUsers.Add((
+            builder.Configuration["Seed:AdminUserName"],
+            builder.Configuration["Seed:AdminEmail"],
+            builder.Configuration["Seed:AdminPassword"]));
     }
-    else if (await userManager.FindByNameAsync(adminUserName) is null)
+
+    foreach (var (userName, email, password) in adminUsers)
     {
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+        {
+            app.Logger.LogWarning("Seed de usuário Admin ignorado: UserName/Password ausentes (configure Seed:AdminUsers no User Secrets).");
+            continue;
+        }
+
+        if (await userManager.FindByNameAsync(userName) is not null)
+            continue;
+
         var admin = new ApplicationUser
         {
-            UserName = adminUserName,
-            Email = adminEmail,
+            UserName = userName,
+            Email = email,
             SecurityStamp = Guid.NewGuid().ToString()
         };
 
-        var result = await userManager.CreateAsync(admin, adminPassword);
+        var result = await userManager.CreateAsync(admin, password);
 
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
         else
-            app.Logger.LogError("Falha ao criar usuário Admin no seed: {Errors}",
-                string.Join(", ", result.Errors.Select(e => e.Description)));
+            app.Logger.LogError("Falha ao criar usuário Admin '{UserName}' no seed: {Errors}",
+                userName, string.Join(", ", result.Errors.Select(e => e.Description)));
     }
 }
 

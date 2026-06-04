@@ -26,6 +26,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get()
         {
             var movimentacoes = await _uof.MovimentacaoRepository.GetAllAsync();
@@ -40,6 +41,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("{id}", Name = "ObterMovimentacao")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<MovimentacaoDTO>> Get(int id)
         {
             var movimentacao = await _uof.MovimentacaoRepository.GetAsync(m => m.MovimentacaoId == id);
@@ -54,6 +56,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpGet("pagination")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters parameters)
         {
             var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(parameters);
@@ -79,7 +82,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(movimentacoesDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<ActionResult<MovimentacaoDTO>> Post(MovimentacaoDTO movimentacaoDTO)
         {
@@ -97,7 +100,7 @@ namespace ApiControlePerifericos.Controllers
             return CreatedAtRoute("ObterMovimentacao", new { id = novaMovimentacaoDTO.MovimentacaoId }, novaMovimentacaoDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<MovimentacaoDTO>> Put(int id, MovimentacaoDTO movimentacaoDTO)
         {
@@ -122,7 +125,7 @@ namespace ApiControlePerifericos.Controllers
             return Ok(movimentacaoAtualizadaDTO);
         }
 
-        [Authorize]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("{id:int}")]
         public async Task<ActionResult<MovimentacaoDTO>> Delete(int id)
         {
