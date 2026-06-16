@@ -13,7 +13,9 @@ namespace ApiControlePerifericos.DTOs
 
         public DateTime? DataMovimentacao { get; set; }
 
+        public string? RegistradoPor { get; set; }
+
         public int ProdutoId { get; set; }
-        public int ColaboradorId { get; set; }
+        public int? ColaboradorId { get; set; }
     }
 }

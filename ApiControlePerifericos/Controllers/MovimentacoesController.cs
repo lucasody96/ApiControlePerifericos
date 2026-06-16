@@ -1,7 +1,9 @@
 ﻿using ApiControlePerifericos.DTOs;
+using ApiControlePerifericos.DTOs.Estoque;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using ApiControlePerifericos.Services;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +19,15 @@ namespace ApiControlePerifericos.Controllers
         private readonly IUnitOfWork _uof;
         private readonly ILogger<MovimentacoesController> _logger;
         private readonly IMapper _mapper;
+        private readonly IEstoqueService _estoqueService;
 
-        public MovimentacoesController(IUnitOfWork uof, ILogger<MovimentacoesController> logger, IMapper mapper)
+        public MovimentacoesController(IUnitOfWork uof, ILogger<MovimentacoesController> logger,
+                                       IMapper mapper, IEstoqueService estoqueService)
         {
             _uof = uof;
             _logger = logger;
             _mapper = mapper;
+            _estoqueService = estoqueService;
         }
 
         [HttpGet]
@@ -65,7 +70,6 @@ namespace ApiControlePerifericos.Controllers
 
         private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(IPagedList<Movimentacao> movimentacoes)
         {
-            // TODO - Extrair a montagem do metadata para um método
             var metadata = new
             {
                 movimentacoes.Count,
@@ -83,21 +87,55 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [Authorize(Policy = "AdminOnly")]
-        [HttpPost]
-        public async Task<ActionResult<MovimentacaoDTO>> Post(MovimentacaoDTO movimentacaoDTO)
+        [HttpPost("entrada")]
+        public async Task<ActionResult<MovimentacaoDTO>> Entrada(EntradaEstoqueRequest request)
         {
-            if (movimentacaoDTO is null)
+            var resultado = await _estoqueService.RegistrarEntradaAsync(
+                request.ProdutoId, request.Quantidade, User.Identity?.Name);
+
+            return ProcessarResultado(resultado);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPost("saida")]
+        public async Task<ActionResult<MovimentacaoDTO>> Saida(SaidaEstoqueRequest request)
+        {
+            var resultado = await _estoqueService.RegistrarSaidaAsync(
+                request.ProdutoId, request.Quantidade, request.ColaboradorId, User.Identity?.Name);
+
+            return ProcessarResultado(resultado);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPost("ajuste")]
+        public async Task<ActionResult<MovimentacaoDTO>> Ajuste(AjusteEstoqueRequest request)
+        {
+            var resultado = await _estoqueService.RegistrarAjusteAsync(
+                request.ProdutoId, request.Quantidade, User.Identity?.Name);
+
+            return ProcessarResultado(resultado);
+        }
+
+        // Mapeia o desfecho da operação de estoque para o status HTTP adequado.
+        private ActionResult<MovimentacaoDTO> ProcessarResultado(EstoqueResult resultado)
+        {
+            switch (resultado.Status)
             {
-                _logger.LogWarning("Dados da movimentação inválidos.");
-                return BadRequest("Dados da movimentação inválidos.");
+                case EstoqueResultStatus.ProdutoNaoEncontrado:
+                case EstoqueResultStatus.ColaboradorNaoEncontrado:
+                    return NotFound(resultado.Mensagem);
+
+                case EstoqueResultStatus.SaldoInsuficiente:
+                    return BadRequest(resultado.Mensagem);
+
+                case EstoqueResultStatus.Sucesso:
+                    var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(resultado.Movimentacao);
+                    return CreatedAtRoute("ObterMovimentacao",
+                        new { id = movimentacaoDTO.MovimentacaoId }, movimentacaoDTO);
+
+                default:
+                    return StatusCode(500, "Erro ao processar a movimentação.");
             }
-
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
-            var novaMovimentacao = _uof.MovimentacaoRepository.Create(movimentacao);
-            await _uof.CommitAsync();
-
-            var novaMovimentacaoDTO = _mapper.Map<MovimentacaoDTO>(novaMovimentacao);
-            return CreatedAtRoute("ObterMovimentacao", new { id = novaMovimentacaoDTO.MovimentacaoId }, novaMovimentacaoDTO);
         }
 
         [Authorize(Policy = "SuperAdminOnly")]
