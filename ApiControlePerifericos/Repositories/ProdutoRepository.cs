@@ -26,6 +26,14 @@ namespace ApiControlePerifericos.Repositories
             return await Task.FromResult(produtosPaginados);
         }
 
+        public async Task<Produto?> GetByIdTrackedAsync(int produtoId)
+        {
+            // FindAsync busca pela PK e devolve a entidade rastreada (sem AsNoTracking),
+            // para que a alteração do SaldoAtual seja persistida no CommitAsync
+            // (mesma transação da movimentação).
+            return await _context.Set<Produto>().FindAsync(produtoId);
+        }
+
         // TODO - Filtrar por ID ou Descrição
     }
 }
