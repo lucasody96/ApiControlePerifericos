@@ -68,22 +68,26 @@ namespace ApiControlePerifericos.Controllers
             return ObterMovimentacoes(movimentacoes);
         }
 
-        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(IPagedList<Movimentacao> movimentacoes)
+        [HttpGet("relatorio")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<IEnumerable<MovimentacaoRelatorioDTO>>> GetRelatorio([FromQuery] MovimentacoesParameters parameters)
         {
-            var metadata = new
+            if (parameters.DataInicio.HasValue && parameters.DataFim.HasValue && parameters.DataInicio > parameters.DataFim)
+                return BadRequest("DataInicio não pode ser maior que DataFim.");
+
+            var movimentacoes = await _uof.MovimentacaoRepository.GetRelatorioAsync(parameters);
+
+            if (movimentacoes is null || !movimentacoes.Any())
             {
-                movimentacoes.Count,
-                movimentacoes.PageSize,
-                movimentacoes.PageCount,
-                movimentacoes.TotalItemCount,
-                movimentacoes.HasNextPage,
-                movimentacoes.HasPreviousPage
-            };
+                _logger.LogInformation("Nenhuma movimentação encontrada para o relatório.");
+                return NotFound("Nenhuma movimentação encontrada para o relatório.");
+            }
 
-            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+            ObterNovoMetadata(movimentacoes);
 
-            var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
-            return Ok(movimentacoesDTO);
+            var relatorioDTO = _mapper.Map<IEnumerable<MovimentacaoRelatorioDTO>>(movimentacoes);
+
+            return Ok(relatorioDTO);
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -114,28 +118,6 @@ namespace ApiControlePerifericos.Controllers
                 request.ProdutoId, request.Quantidade, User.Identity?.Name);
 
             return ProcessarResultado(resultado);
-        }
-
-        // Mapeia o desfecho da operação de estoque para o status HTTP adequado.
-        private ActionResult<MovimentacaoDTO> ProcessarResultado(EstoqueResult resultado)
-        {
-            switch (resultado.Status)
-            {
-                case EstoqueResultStatus.ProdutoNaoEncontrado:
-                case EstoqueResultStatus.ColaboradorNaoEncontrado:
-                    return NotFound(resultado.Mensagem);
-
-                case EstoqueResultStatus.SaldoInsuficiente:
-                    return BadRequest(resultado.Mensagem);
-
-                case EstoqueResultStatus.Sucesso:
-                    var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(resultado.Movimentacao);
-                    return CreatedAtRoute("ObterMovimentacao",
-                        new { id = movimentacaoDTO.MovimentacaoId }, movimentacaoDTO);
-
-                default:
-                    return StatusCode(500, "Erro ao processar a movimentação.");
-            }
         }
 
         [Authorize(Policy = "SuperAdminOnly")]
@@ -179,6 +161,52 @@ namespace ApiControlePerifericos.Controllers
 
             var movimentacaoExcluidaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluida);
             return Ok(movimentacaoExcluidaDTO);
+        }
+
+        //metodos privates
+        private void ObterNovoMetadata(IPagedList<Movimentacao> movimentacoes)
+        {
+            var metadata = new
+            {
+                movimentacoes.Count,
+                movimentacoes.PageSize,
+                movimentacoes.PageCount,
+                movimentacoes.TotalItemCount,
+                movimentacoes.HasNextPage,
+                movimentacoes.HasPreviousPage
+            };
+
+            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+        }
+
+        private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(IPagedList<Movimentacao> movimentacoes)
+        {
+            ObterNovoMetadata(movimentacoes);
+
+            var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
+            return Ok(movimentacoesDTO);
+        }
+
+        // Mapeia o desfecho da operação de estoque para o status HTTP adequado.
+        private ActionResult<MovimentacaoDTO> ProcessarResultado(EstoqueResult resultado)
+        {
+            switch (resultado.Status)
+            {
+                case EstoqueResultStatus.ProdutoNaoEncontrado:
+                case EstoqueResultStatus.ColaboradorNaoEncontrado:
+                    return NotFound(resultado.Mensagem);
+
+                case EstoqueResultStatus.SaldoInsuficiente:
+                    return BadRequest(resultado.Mensagem);
+
+                case EstoqueResultStatus.Sucesso:
+                    var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(resultado.Movimentacao);
+                    return CreatedAtRoute("ObterMovimentacao",
+                        new { id = movimentacaoDTO.MovimentacaoId }, movimentacaoDTO);
+
+                default:
+                    return StatusCode(500, "Erro ao processar a movimentação.");
+            }
         }
     }
 }

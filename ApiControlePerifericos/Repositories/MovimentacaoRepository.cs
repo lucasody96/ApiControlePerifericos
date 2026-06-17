@@ -15,22 +15,6 @@ namespace ApiControlePerifericos.Repositories
 
         }
 
-        public async Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId)
-        {
-            return await _context.Set<Movimentacao>()
-                                 .Where(m => m.ProdutoId == produtoId)
-                                 .AsNoTracking()
-                                 .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId)
-        {
-            return await _context.Set<Movimentacao>()
-                                 .Where(m => m.ColaboradorId == colaboradorId)
-                                 .AsNoTracking()
-                                 .ToListAsync();
-        }
-
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)
         {
             // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
@@ -43,6 +27,29 @@ namespace ApiControlePerifericos.Repositories
             return await Task.FromResult(movimentacoesPaginadas);
         }
 
-        // TODO - Filtrar por Data, Produto ou Colaborador
+        public async Task<IPagedList<Movimentacao>> GetRelatorioAsync(MovimentacoesParameters parameters)
+        {
+            var query = _context.Set<Movimentacao>()
+                                .Include(m => m.Produto)
+                                .Include(m => m.Colaborador)
+                                .AsNoTracking()
+                                .AsQueryable();
+            if (parameters.DataInicio.HasValue)
+                query = query.Where(m => m.DataMovimentacao >= parameters.DataInicio.Value);
+
+            if (parameters.DataFim.HasValue)
+                query = query.Where(m => m.DataMovimentacao < parameters.DataFim.Value.Date.AddDays(1));
+
+            if (!string.IsNullOrWhiteSpace(parameters.DescricaoProduto))
+                query = query.Where(m => m.Produto!.Descricao!.Contains(parameters.DescricaoProduto));
+
+            if (!string.IsNullOrWhiteSpace(parameters.NomeColaborador))
+                query = query.Where(m => m.Colaborador!.Nome!.Contains(parameters.NomeColaborador));
+
+            // Ordenar por DataMovimentacao em ordem decrescente
+            var ordenadas = query.OrderByDescending(m => m.DataMovimentacao);
+            // Aplicar paginação
+            return await Task.FromResult(ordenadas.ToPagedList(parameters.PageNumber, parameters.PageSize));
+        }
     }
 }
