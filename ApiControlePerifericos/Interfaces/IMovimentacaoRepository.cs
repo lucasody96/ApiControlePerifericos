@@ -6,9 +6,8 @@ namespace ApiControlePerifericos.Interfaces
 {
     public interface IMovimentacaoRepository : IRepository<Movimentacao>
     {
-        Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId);
-        Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId);
-
         Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters);
+
+        Task<IPagedList<Movimentacao>> GetRelatorioAsync(MovimentacoesParameters parameters);
     }
 }
