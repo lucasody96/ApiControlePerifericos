@@ -82,6 +82,23 @@ namespace ApiControlePerifericos.Controllers
             return Ok(produtosDTO);
         }
 
+        [HttpGet("abaixo-do-minimo")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetAbaixoEstoqueMinimo()
+        {
+            var produtos = await _uof.ProdutoRepository.GetAbaixoEstoqueMinimoAsync();
+
+            if (produtos is null || !produtos.Any())
+            {
+                _logger.LogInformation("Nenhum produto abaixo do estoque mínimo encontrado.");
+                return NotFound("Nenhum produto abaixo do estoque mínimo encontrado.");
+            }
+
+            var produtosDTO = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+            return Ok(produtosDTO);
+        }
+
         [Authorize(Policy = "AdminOnly")]
         [HttpPost]
         public async Task<ActionResult<ProdutoDTO>> Post(ProdutoDTO produtoDTO)
@@ -127,7 +144,6 @@ namespace ApiControlePerifericos.Controllers
 
         [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("{id:int}")]
-
         public async Task<ActionResult<ProdutoDTO>> Delete(int id)
         {
             var produto = await _uof.ProdutoRepository.GetAsync(p => p.ProdutoId == id);
