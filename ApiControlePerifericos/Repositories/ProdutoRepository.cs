@@ -2,6 +2,7 @@ using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using Microsoft.EntityFrameworkCore;
 using X.PagedList;
 using X.PagedList.Extensions;
 
@@ -34,6 +35,13 @@ namespace ApiControlePerifericos.Repositories
             return await _context.Set<Produto>().FindAsync(produtoId);
         }
 
-        // TODO - Filtrar por ID ou Descrição
+        public async Task<IEnumerable<Produto>> GetAbaixoEstoqueMinimoAsync()
+        {
+            return await _context.Set<Produto>()
+                                 .AsNoTracking()
+                                 .Where(p => p.SaldoAtual <= p.EstoqueMinimo)
+                                 .OrderBy(p => p.Descricao)
+                                 .ToListAsync();
+        }   
     }
 }

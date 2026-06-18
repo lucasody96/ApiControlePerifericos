@@ -10,5 +10,6 @@ namespace ApiControlePerifericos.Interfaces
 
         // Retorna o produto rastreado pelo contexto, para permitir atualização do saldo.
         Task<Produto?> GetByIdTrackedAsync(int produtoId);
+        Task<IEnumerable<Produto>> GetAbaixoEstoqueMinimoAsync();
     }
 }
