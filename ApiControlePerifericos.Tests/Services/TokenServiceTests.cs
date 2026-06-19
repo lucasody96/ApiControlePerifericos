@@ -172,6 +172,6 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.Throws<InvalidOperationException>(() => service.GetPrincipalFromExpiredToken("qualquer-token"));
         }
 
-}
+    }
 }
 
