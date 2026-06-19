@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="ApiControlePerifericos.Tests/ApiControlePerifericos.Tests.csproj" />
   <Project Path="ApiControlePerifericos/ApiControlePerifericos.csproj" />
 </Solution>
