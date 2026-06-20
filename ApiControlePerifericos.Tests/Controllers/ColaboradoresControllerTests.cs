@@ -30,6 +30,12 @@ namespace ApiControlePerifericos.Tests.Controllers
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Colaborador, bool>>>()))
                 .ReturnsAsync(colaborador);
 
+        // O PUT verifica existencia via ExistsAsync (nao carrega a entidade).
+        private void ConfigurarExistencia(bool existe) =>
+            _colaboradorRepo
+                .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Colaborador, bool>>>()))
+                .ReturnsAsync(existe);
+
         // ---------------------------- GET lista ------------------------------
 
         /// <summary>
@@ -156,7 +162,7 @@ namespace ApiControlePerifericos.Tests.Controllers
         {
             // Arrange
             var colaboradorDTO = new ColaboradorDTO { ColaboradorId = 1, Nome = "Fulano" };
-            ConfigurarColaborador(null);
+            ConfigurarExistencia(false);
 
             // Act
             var result = await _controller.Put(1, colaboradorDTO);
@@ -176,7 +182,7 @@ namespace ApiControlePerifericos.Tests.Controllers
             var colaboradorDTO = new ColaboradorDTO { ColaboradorId = 1, Nome = "Fulano" };
             var colaborador = new Colaborador { ColaboradorId = 1, Nome = "Fulano" };
 
-            ConfigurarColaborador(colaborador);
+            ConfigurarExistencia(true);
             _mapper.Setup(m => m.Map<Colaborador>(colaboradorDTO)).Returns(colaborador);
             _colaboradorRepo.Setup(r => r.Update(colaborador)).Returns(colaborador);
             _mapper.Setup(m => m.Map<ColaboradorDTO>(colaborador)).Returns(colaboradorDTO);
