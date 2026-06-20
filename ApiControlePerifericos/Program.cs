@@ -96,7 +96,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              // Expõe o header de paginação para o JS do frontend conseguir lê-lo.
+              .WithExposedHeaders("X-Pagination"));
 });
 
 var mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
