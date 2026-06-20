@@ -4,6 +4,11 @@
     {
         private readonly CustomLoggerProviderConfiguration _loggerConfig;
 
+        // O provider cria um logger por categoria, mas todos escrevem no mesmo
+        // arquivo. Um cadeado estático serializa a escrita entre todas as
+        // instâncias, evitando IOException por acesso concorrente ao Log.txt.
+        private static readonly object _lockArquivo = new();
+
         public CustomerLogger(CustomLoggerProviderConfiguration config)
         {
             _loggerConfig = config;
@@ -32,8 +37,18 @@
 
         private void EscreverTextoNoArquivo(string mensagem)
         {
-            using var streamWriter = new StreamWriter(_loggerConfig.LogPath, true);
-            streamWriter.WriteLine(mensagem);
+            try
+            {
+                lock (_lockArquivo)
+                {
+                    using var streamWriter = new StreamWriter(_loggerConfig.LogPath, true);
+                    streamWriter.WriteLine(mensagem);
+                }
+            }
+            catch (IOException)
+            {
+                // Logging nunca deve quebrar a aplicação: ignora falha de escrita no arquivo.
+            }
         }
     }
 
