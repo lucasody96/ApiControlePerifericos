@@ -24,6 +24,9 @@ namespace ApiControlePerifericos.Tests.Services
             return new TokenService(config);    
         }
 
+        /// <summary>
+        /// Testa se o método GenerateRefreshToken retorna uma string não vazia.
+        /// </summary>
         [Fact]
         public void GenerateRefreshToken_DeveRetornarStringNaoVazia()
         {
@@ -37,6 +40,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.False(string.IsNullOrEmpty(refreshToken));
         }
 
+        /// <summary>
+        /// Testa se o método GenerateRefreshToken retorna uma string que, quando decodificada de Base64, tem exatamente 128 bytes.
+        /// </summary>
         [Fact]
         public void GenerateRefreshToken_DeveCodificarPara128Bytes()
         {
@@ -51,6 +57,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.Equal(128, bytes.Length);
         }
 
+        /// <summary>
+        /// Testa se o método GenerateRefreshToken retorna tokens diferentes a cada chamada.
+        /// </summary>
         [Fact]
         public void GenerateRefreshToken_DeveGerarTokensDiferentesACadaChamada()
         {
@@ -65,6 +74,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.NotEqual(primeiro, segundo);
         }
 
+        /// <summary>
+        /// Testa se o método GenerateToken inclui os claims fornecidos no token gerado.
+        /// </summary>
         [Fact]
         public void GenerateToken_DeveConterOsClaimsInformados()
         {
@@ -82,6 +94,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.Contains(token.Claims, c => c.Type == "id" && c.Value == "lucas.ody");
         }
 
+        /// <summary>
+        /// Testa se o método GenerateToken define corretamente o issuer e audience do token com base na configuração fornecida.
+        /// </summary>
         [Fact]
         public void GenerateToken_DeveDefinirIssuerEAudienceDaConfiguracao()
         {
@@ -96,6 +111,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.Contains("TesteAudience", token.Audiences);
         }
 
+        /// <summary>
+        /// Testa se o método GenerateToken lança uma InvalidOperationException quando a chave secreta não está presente na configuração.
+        /// </summary>
         [Fact]
         public void GenerateToken_SemSecretKey_DeveLancarInvalidOperationException()
         {
@@ -114,6 +132,9 @@ namespace ApiControlePerifericos.Tests.Services
 
         }
 
+        /// <summary>
+        /// Testa se o método GetPrincipalFromExpiredToken consegue extrair corretamente os claims de um token válido, mesmo que esteja expirado.
+        /// </summary>
         [Fact]
         public void GetPrincipalFromExpiredToken_DeveExtrairOsClaimsDoTokenValido()
         {
@@ -136,6 +157,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.Contains(principal.Claims, c => c.Type == "id" && c.Value == "lucas.ody");
         }
 
+        /// <summary>
+        /// Testa se o método GetPrincipalFromExpiredToken lança uma SecurityTokenException quando o token fornecido foi assinado com uma chave diferente da esperada.
+        /// </summary>
         [Fact]
         public void GetPrincipalFromExpiredToken_ComChaveDiferente_DeveLancarExcecao()
         {
@@ -158,6 +182,9 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.ThrowsAny<SecurityTokenException>(() => serviceQueValida.GetPrincipalFromExpiredToken(tokenString));
         }
 
+        /// <summary>
+        /// Testa se o método GetPrincipalFromExpiredToken lança uma InvalidOperationException quando a chave secreta não está presente na configuração.
+        /// </summary>
         [Fact]
         public void GetPrincipalFromExpiredToken_SemSecretKey_DeveLancarInvalidOperationException()
         {
