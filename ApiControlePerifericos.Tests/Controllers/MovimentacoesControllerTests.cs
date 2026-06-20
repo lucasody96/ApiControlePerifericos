@@ -124,6 +124,98 @@ namespace ApiControlePerifericos.Tests.Controllers
             Assert.IsType<NotFoundObjectResult>(result.Result);
         }
 
+        // ---------------------------- GET por produto / colaborador ------------------------------
+
+        /// <summary>
+        /// Testa se o GetByProduto retorna 200 OK com os DTOs quando há movimentações do produto.
+        /// </summary>
+        [Fact]
+        public async Task GetByProduto_QuandoExistem_DeveRetornar200ComDTOs()
+        {
+            // Arrange
+            var movimentacoes = new List<Movimentacao>
+            {
+                new() { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 },
+                new() { MovimentacaoId = 2, Tipo = 'S', Quantidade = 2, ProdutoId = 1, ColaboradorId = 7 },
+            };
+            var dtos = new List<MovimentacaoDTO>
+            {
+                new() { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 },
+                new() { MovimentacaoId = 2, Tipo = 'S', Quantidade = 2, ProdutoId = 1, ColaboradorId = 7 },
+            };
+            _movimentacaoRepo.Setup(r => r.GetByProdutoIdAsync(1)).ReturnsAsync(movimentacoes);
+            _mapper.Setup(m => m.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes)).Returns(dtos);
+
+            // Act
+            var result = await _controller.GetByProduto(1);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var retorno = Assert.IsAssignableFrom<IEnumerable<MovimentacaoDTO>>(ok.Value);
+            Assert.Equal(2, retorno.Count());
+        }
+
+        /// <summary>
+        /// Testa se o GetByProduto retorna 404 NotFound quando não há movimentações do produto.
+        /// </summary>
+        [Fact]
+        public async Task GetByProduto_QuandoVazio_DeveRetornar404()
+        {
+            // Arrange
+            _movimentacaoRepo.Setup(r => r.GetByProdutoIdAsync(It.IsAny<int>()))
+                             .ReturnsAsync(new List<Movimentacao>());
+
+            // Act
+            var result = await _controller.GetByProduto(99);
+
+            // Assert
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
+        /// <summary>
+        /// Testa se o GetByColaborador retorna 200 OK com os DTOs quando há movimentações do colaborador.
+        /// </summary>
+        [Fact]
+        public async Task GetByColaborador_QuandoExistem_DeveRetornar200ComDTOs()
+        {
+            // Arrange
+            var movimentacoes = new List<Movimentacao>
+            {
+                new() { MovimentacaoId = 3, Tipo = 'S', Quantidade = 1, ProdutoId = 2, ColaboradorId = 7 },
+            };
+            var dtos = new List<MovimentacaoDTO>
+            {
+                new() { MovimentacaoId = 3, Tipo = 'S', Quantidade = 1, ProdutoId = 2, ColaboradorId = 7 },
+            };
+            _movimentacaoRepo.Setup(r => r.GetByColaboradorIdAsync(7)).ReturnsAsync(movimentacoes);
+            _mapper.Setup(m => m.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes)).Returns(dtos);
+
+            // Act
+            var result = await _controller.GetByColaborador(7);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var retorno = Assert.IsAssignableFrom<IEnumerable<MovimentacaoDTO>>(ok.Value);
+            Assert.Single(retorno);
+        }
+
+        /// <summary>
+        /// Testa se o GetByColaborador retorna 404 NotFound quando não há movimentações do colaborador.
+        /// </summary>
+        [Fact]
+        public async Task GetByColaborador_QuandoVazio_DeveRetornar404()
+        {
+            // Arrange
+            _movimentacaoRepo.Setup(r => r.GetByColaboradorIdAsync(It.IsAny<int>()))
+                             .ReturnsAsync(new List<Movimentacao>());
+
+            // Act
+            var result = await _controller.GetByColaborador(99);
+
+            // Assert
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
         // ---------------------------- POST (entrada/saida/ajuste) ------------------------------
 
         /// <summary>
