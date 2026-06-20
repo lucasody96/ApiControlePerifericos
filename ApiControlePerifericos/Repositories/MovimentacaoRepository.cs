@@ -51,5 +51,23 @@ namespace ApiControlePerifericos.Repositories
             // Aplicar paginação
             return await Task.FromResult(ordenadas.ToPagedList(parameters.PageNumber, parameters.PageSize));
         }
+
+        public async Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId)
+        {
+            return await _context.Set<Movimentacao>()
+                                 .AsNoTracking()
+                                 .Where(m => m.ProdutoId == produtoId)
+                                 .OrderByDescending(m => m.DataMovimentacao)
+                                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Movimentacao>> GetByColaboradorIdAsync(int colaboradorId)
+        {
+            return await _context.Set<Movimentacao>()
+                                 .AsNoTracking()
+                                 .Where(m => m.ColaboradorId == colaboradorId)
+                                 .OrderByDescending(m => m.DataMovimentacao)
+                                 .ToListAsync();
+        }
     }
 }

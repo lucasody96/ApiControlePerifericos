@@ -90,6 +90,36 @@ namespace ApiControlePerifericos.Controllers
             return Ok(relatorioDTO);
         }
 
+        [HttpGet("produto/{produtoId:int}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> GetByProduto(int produtoId)
+        {
+            var movimentacoes = await _uof.MovimentacaoRepository.GetByProdutoIdAsync(produtoId);
+            if (movimentacoes is null || !movimentacoes.Any())
+            {
+                _logger.LogInformation("Nenhuma movimentação encontrada para o produto {ProdutoId}.", produtoId);
+                return NotFound($"Nenhuma movimentação encontrada para o produto {produtoId}.");
+            }
+
+            var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
+            return Ok(movimentacoesDTO);
+        }
+
+        [HttpGet("colaborador/{colaboradorId:int}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> GetByColaborador(int colaboradorId)
+        {
+            var movimentacoes = await _uof.MovimentacaoRepository.GetByColaboradorIdAsync(colaboradorId);
+            if (movimentacoes is null || !movimentacoes.Any())
+            {
+                _logger.LogInformation("Nenhuma movimentação encontrada para o colaborador {ColaboradorId}.", colaboradorId);
+                return NotFound($"Nenhuma movimentação encontrada para o colaborador {colaboradorId}.");
+            }
+
+            var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
+            return Ok(movimentacoesDTO);
+        }
+
         [Authorize(Policy = "AdminOnly")]
         [HttpPost("entrada")]
         public async Task<ActionResult<MovimentacaoDTO>> Entrada(EntradaEstoqueRequest request)
