@@ -130,8 +130,8 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
             }
 
-            var existe = await _uof.MovimentacaoRepository.GetAsync(m => m.MovimentacaoId == id);
-            if (existe is null)
+            var existe = await _uof.MovimentacaoRepository.ExistsAsync(m => m.MovimentacaoId == id);
+            if (!existe)
             {
                 _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
                 return NotFound($"Movimentação com ID {id} não encontrada.");

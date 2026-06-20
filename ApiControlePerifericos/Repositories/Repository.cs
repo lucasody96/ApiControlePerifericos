@@ -24,6 +24,12 @@ namespace ApiControlePerifericos.Repositories
             return await _context.Set<T>().AsNoTracking().FirstOrDefaultAsync(predicate);
         }
 
+        public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+        {
+            // AnyAsync traduz para um EXISTS no banco, sem carregar a entidade.
+            return await _context.Set<T>().AnyAsync(predicate);
+        }
+
         public T Create(T entity)
         {
             _context.Set<T>().Add(entity);

@@ -47,6 +47,12 @@ namespace ApiControlePerifericos.Tests.Controllers
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Movimentacao, bool>>>()))
                 .ReturnsAsync(movimentacao);
 
+        // O PUT verifica existencia via ExistsAsync (nao carrega a entidade).
+        private void ConfigurarExistencia(bool existe) =>
+            _movimentacaoRepo
+                .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Movimentacao, bool>>>()))
+                .ReturnsAsync(existe);
+
         // ---------------------------- GET lista ------------------------------
 
         /// <summary>
@@ -254,7 +260,7 @@ namespace ApiControlePerifericos.Tests.Controllers
         {
             // Arrange
             var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
-            ConfigurarMovimentacao(null);
+            ConfigurarExistencia(false);
 
             // Act
             var result = await _controller.Put(1, movimentacaoDTO);
@@ -274,7 +280,7 @@ namespace ApiControlePerifericos.Tests.Controllers
             var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
             var movimentacao = new Movimentacao { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
 
-            ConfigurarMovimentacao(movimentacao);
+            ConfigurarExistencia(true);
             _mapper.Setup(m => m.Map<Movimentacao>(movimentacaoDTO)).Returns(movimentacao);
             _movimentacaoRepo.Setup(r => r.Update(movimentacao)).Returns(movimentacao);
             _mapper.Setup(m => m.Map<MovimentacaoDTO>(movimentacao)).Returns(movimentacaoDTO);

@@ -33,6 +33,12 @@ namespace ApiControlePerifericos.Tests.Controllers
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Produto, bool>>>()))
                 .ReturnsAsync(produto);
 
+        // O PUT verifica existência via ExistsAsync (não carrega a entidade).
+        private void ConfigurarExistencia(bool existe) =>
+            _produtoRepo
+                .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Produto, bool>>>()))
+                .ReturnsAsync(existe);
+
         //------------------------------------- GET Lista ---------------------------------
 
         /// <summary>
@@ -167,7 +173,7 @@ namespace ApiControlePerifericos.Tests.Controllers
         {
             //Arrange
             var produtoDTO = new ProdutoDTO { ProdutoId = 1, Descricao = "Mouse" };
-            ConfigurarProduto(null);
+            ConfigurarExistencia(false);
 
             //Act
             var result = await _controller.Put(1, produtoDTO);
@@ -189,7 +195,7 @@ namespace ApiControlePerifericos.Tests.Controllers
             var produtoDTO = new ProdutoDTO { ProdutoId = 1, Descricao = "Mouse" };
             var produto = new Produto { ProdutoId = 1, Descricao = "Mouse" };
 
-            ConfigurarProduto(produto);
+            ConfigurarExistencia(true);
             _mapper.Setup(m => m.Map<Produto>(produtoDTO)).Returns(produto);
             _produtoRepo.Setup(r => r.Update(produto)).Returns(produto);
             _mapper.Setup(m => m.Map<ProdutoDTO>(produto)).Returns(produtoDTO);
