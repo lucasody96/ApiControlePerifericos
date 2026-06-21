@@ -1,0 +1,27 @@
+# Frontend (deploy separado no Vercel)
+frontend/
+
+# Build artifacts do .NET
+**/bin/
+**/obj/
+**/out/
+
+# Projeto de testes (nao vai para a imagem de producao)
+ApiControlePerifericos.Tests/
+
+# Git / IDE / SO
+.git/
+.gitignore
+.vs/
+.vscode/
+*.user
+
+# Logs e segredos locais
+Log.txt
+**/appsettings.Development.json
+**/*.Development.json
+
+# Docs
+README.md
+DEPLOY.md
+CLAUDE.md
