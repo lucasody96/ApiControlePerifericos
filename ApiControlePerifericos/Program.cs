@@ -7,6 +7,7 @@ using ApiControlePerifericos.Models.Identity;
 using ApiControlePerifericos.Repositories;
 using ApiControlePerifericos.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -16,6 +17,14 @@ using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Cloud Run (e outros PaaS) definem a porta de escuta via env PORT.
+// Em dev a variavel nao existe e o Kestrel usa as portas do launchSettings.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 builder.Services.AddControllers(options =>
 {
@@ -131,6 +140,12 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+
+    // Aplica migrations pendentes no startup (em producao o banco e provisionado vazio;
+    // evita ter que rodar `dotnet ef database update` manualmente contra o banco remoto).
+    var db = services.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
@@ -188,7 +203,24 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+// Atras do proxy do Cloud Run o TLS e terminado na borda: honra os headers
+// X-Forwarded-* para que a app reconheca o request original como HTTPS.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+// O proxy do Cloud Run nao esta na faixa de redes "conhecidas" padrao; limpa as listas
+// para confiar no header encaminhado (o trafego ja chega exclusivamente pelo proxy).
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
+// Em producao (Cloud Run) o container escuta apenas HTTP; o redirect para HTTPS
+// e responsabilidade do proxy. Manter o redirect aqui causaria warning/loop.
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors(FrontendCorsPolicy);
 
