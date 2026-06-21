@@ -11,33 +11,38 @@ Navegador  ->  Vercel (frontend React/estatico)
               Google Cloud Run (API .NET em container)
                    |
                    v  (MySQL/TLS)
-              Aiven for MySQL (banco gerenciado)
+              TiDB Cloud Starter (banco MySQL-compativel)
 ```
 
-| Camada    | Servico            | Custo      |
-|-----------|--------------------|------------|
-| Frontend  | Vercel             | Gratis     |
-| API       | Google Cloud Run   | Gratis*    |
-| Banco     | Aiven for MySQL    | Gratis     |
+| Camada    | Servico                 | Custo      |
+|-----------|-------------------------|------------|
+| Frontend  | Vercel                  | Gratis     |
+| API       | Google Cloud Run        | Gratis*    |
+| Banco     | TiDB Cloud Starter      | Gratis     |
 
 \* Cloud Run pede cartao no cadastro do GCP, mas nao cobra dentro do free tier.
+Cloud Run e TiDB escalam a zero quando ociosos e religam sozinhos no acesso
+(auto-resume) — nenhum servico precisa ser religado manualmente.
 
 ---
 
-## Passo 1 — Banco: Aiven for MySQL
+## Passo 1 — Banco: TiDB Cloud Starter
 
-1. Criar conta em https://aiven.io (login com GitHub, sem cartao).
-2. Criar um servico **MySQL** no plano **Free**.
-3. Aguardar o status ficar *Running* e copiar os dados de conexao (host, porta, usuario, senha, database — normalmente `defaultdb`).
+1. Criar conta em https://tidbcloud.com (login com GitHub, **sem cartao**).
+2. Criar um cluster **Starter** (free) — escolher uma regiao proxima.
+3. Em **Connect**, copiar os dados de conexao (host, porta `4000`, usuario no formato `xxxxxxxx.root`, senha e database — normalmente `test`).
 4. Montar a connection string no formato do .NET/Pomelo (usada na env `ConnectionStrings__DefaultConnection`):
 
    ```
-   Server=SEU_HOST.aivencloud.com;Port=PORTA;Database=defaultdb;User=avnadmin;Password=SUA_SENHA;SslMode=Required;
+   Server=gateway01.SUA_REGIAO.prod.aws.tidbcloud.com;Port=4000;Database=test;User=SEU_PREFIXO.root;Password=SUA_SENHA;SslMode=Required;
    ```
 
-   > Aiven exige TLS — o `SslMode=Required` cuida disso.
+   > O TiDB Cloud exige TLS — o `SslMode=Required` cuida disso. Se a conexao falhar
+   > por validacao de certificado, usar `SslMode=VerifyFull` apontando o CA do sistema.
 
-As migrations sao aplicadas automaticamente no primeiro boot da API (o `Program.cs` roda `Database.MigrateAsync()` no startup), entao o banco pode comecar vazio.
+O banco e MySQL-compativel; o `Program.cs` fixa a versao do servidor em MySQL 8.0.x.
+As migrations sao aplicadas automaticamente no primeiro boot da API
+(`Database.MigrateAsync()`), entao o banco pode comecar vazio.
 
 ---
 
@@ -110,7 +115,7 @@ Pronto — acessar a URL do Vercel e logar com o admin do seed.
 | Variavel                          | Exemplo / Observacao                                   |
 |-----------------------------------|--------------------------------------------------------|
 | `ASPNETCORE_ENVIRONMENT`          | `Production`                                           |
-| `ConnectionStrings__DefaultConnection` | Connection string do Aiven (com `SslMode=Required`) |
+| `ConnectionStrings__DefaultConnection` | Connection string do TiDB (porta 4000, com `SslMode=Required`) |
 | `JWT__SecretKey`                  | Chave aleatoria forte (ver abaixo) — **segredo**       |
 | `JWT__ValidIssuer`                | URL publica da API no Cloud Run                        |
 | `JWT__ValidAudience`              | URL publica da API (ou do front)                       |
