@@ -188,6 +188,15 @@ namespace ApiControlePerifericos.Controllers
             if (user == null)
                 return NotFound(new Response { Status = "Error", Message = "Usuário não encontrado" });
 
+            // Protege super admins: apenas outro super admin pode resetar a senha
+            // de um super admin (evita escalada de privilégio por um Admin comum).
+            if (EhSuperAdmin(user.UserName) && !EhSuperAdmin(User.Identity?.Name))
+            {
+                _logger.LogWarning("Reset de senha de super admin {Alvo} bloqueado para {Solicitante}.",
+                    user.UserName, User.Identity?.Name);
+                return Forbid();
+            }
+
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
             var result = await _userManager.ResetPasswordAsync(user, token, model.NewPassword!);
@@ -264,6 +273,17 @@ namespace ApiControlePerifericos.Controllers
 
             return NoContent();
 
+        }
+
+        // Super admins são definidos pela allowlist de usernames em config
+        // (seção "SuperAdmins"), a mesma usada pela policy SuperAdminOnly.
+        private bool EhSuperAdmin(string? userName)
+        {
+            if (string.IsNullOrEmpty(userName))
+                return false;
+
+            var superAdmins = _configuration.GetSection("SuperAdmins").Get<string[]>() ?? [];
+            return superAdmins.Contains(userName, StringComparer.OrdinalIgnoreCase);
         }
     }
 }
