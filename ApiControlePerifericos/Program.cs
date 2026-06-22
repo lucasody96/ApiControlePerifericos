@@ -83,13 +83,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Allowlist de super admins (usernames), lida da config. Usada na policy e no
+// AuthController (proteção de reset de senha).
+var superAdmins = builder.Configuration.GetSection("SuperAdmins").Get<string[]>()
+    ?? ["lucas.ody", "admin"];
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 
-    // Super admins: usuário Admin cujo claim "id" seja um dos valores autorizados.
+    // Super admins: usuário Admin cujo claim "id" esteja na allowlist configurada.
     options.AddPolicy("SuperAdminOnly", policy =>
-        policy.RequireRole("Admin").RequireClaim("id", "lucas.ody", "admin"));
+        policy.RequireRole("Admin").RequireClaim("id", superAdmins));
 
     options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
 });
