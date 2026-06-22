@@ -179,7 +179,7 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
-        [Route("ResetPassword")]
+        [Route("reset-password")]
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> ResetPassword([FromBody] AdminResetPasswordRequest model)
         {
