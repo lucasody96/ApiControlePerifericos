@@ -156,6 +156,54 @@ namespace ApiControlePerifericos.Controllers
         }
 
         [HttpPost]
+        [Route("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest model)
+        {
+            var user = await _userManager.FindByNameAsync(User.Identity!.Name!);
+
+            if (user == null)
+                return NotFound(new Response { Status = "Error", Message = "Usuário não encontrado" });
+
+            var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword!, model.NewPassword!);
+
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Falha ao alterar a senha para o usuário {UserName}: {Errors}",
+                    user.UserName, string.Join(", ", result.Errors.Select(e => e.Description)));
+                return BadRequest(new Response { Status = "Error", Message = "Falha ao alterar a senha. Verifique a senha atual e os requisitos da nova senha." });
+            }
+            
+            _logger.LogInformation("Senha alterada com sucesso para o usuário {UserName}.", user.UserName);
+            return Ok(new { message = "Senha alterada com sucesso!" });
+        }
+
+        [HttpPost]
+        [Route("ResetPassword")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> ResetPassword([FromBody] AdminResetPasswordRequest model)
+        {
+            var user = await _userManager.FindByNameAsync(model.UserName!);
+
+            if (user == null)
+                return NotFound(new Response { Status = "Error", Message = "Usuário não encontrado" });
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var result = await _userManager.ResetPasswordAsync(user, token, model.NewPassword!);
+
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Falha ao redefinir a senha para o usuário {UserName}: {Errors}",
+                    user.UserName, string.Join(", ", result.Errors.Select(e => e.Description)));
+                return BadRequest(new Response { Status = "Error", Message = "Falha ao redefinir a senha. Verifique o token e os requisitos da nova senha." });
+            }
+
+            _logger.LogInformation("Senha do usuário {UserName} resetada por {Admin}.", user.UserName, User.Identity!.Name);
+            return Ok(new Response { Status = "Success", Message = $"Senha do usuário {user.UserName} resetada com sucesso." });
+        }
+
+        [HttpPost]
         [Route("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] TokenResponse model)
         {
