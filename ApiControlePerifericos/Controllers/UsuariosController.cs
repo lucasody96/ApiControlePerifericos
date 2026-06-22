@@ -80,7 +80,10 @@ namespace ApiControlePerifericos.Controllers
             return Ok(roles);
         }
 
+        // Alterar roles é mais sensível que o resto da gestão: restrito a
+        // SuperAdmin (sobrepõe o AdminOnly do controller).
         [HttpPut("{userName}/roles")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> AtualizarRoles(string userName, [FromBody] AtualizarRolesRequest model)
         {
             var user = await _userManager.FindByNameAsync(userName);
