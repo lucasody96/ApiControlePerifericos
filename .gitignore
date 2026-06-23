@@ -16,3 +16,6 @@ Log.txt
 # Configurações locais do Claude Code (pessoais, não compartilhar)
 .claude/settings.local.json
 CLAUDE.md
+
+# PDF do manual é gerado a partir do MANUAL.md (artefato regerável)
+Manual-Controle-Perifericos.pdf
