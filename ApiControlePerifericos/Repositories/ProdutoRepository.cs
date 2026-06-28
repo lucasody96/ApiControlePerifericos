@@ -43,7 +43,7 @@ namespace ApiControlePerifericos.Repositories
         {
             return await _context.Set<Produto>()
                                  .AsNoTracking()
-                                 .Where(p => p.SaldoAtual <= p.EstoqueMinimo)
+                                 .Where(p => p.SaldoAtual < p.EstoqueMinimo)
                                  .OrderBy(p => p.Descricao)
                                  .ToListAsync();
         }   

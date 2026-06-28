@@ -127,15 +127,16 @@ namespace ApiControlePerifericos.Tests.Repositories
         }
 
         [Fact]
-        public async Task GetAbaixoEstoqueMinimoAsync_DeveRetornarSomenteProdutosNoLimiteOuAbaixo()
+        public async Task GetAbaixoEstoqueMinimoAsync_DeveRetornarSomenteProdutosAbaixoDoMinimo()
         {
-            // Arrange — o repositório usa SaldoAtual <= EstoqueMinimo (inclui o igual).
+            // Arrange — o repositório usa SaldoAtual < EstoqueMinimo (estritamente menor):
+            // o produto no limite (saldo == mínimo) NÃO é considerado abaixo do mínimo.
             var dbName = Guid.NewGuid().ToString();
             using (var contexto = CriarContexto(dbName))
             {
                 contexto.Produtos.AddRange(
                     new Produto { Descricao = "Abaixo", SaldoAtual = 1, EstoqueMinimo = 5 },   // entra (<)
-                    new Produto { Descricao = "NoLimite", SaldoAtual = 5, EstoqueMinimo = 5 },  // entra (=)
+                    new Produto { Descricao = "NoLimite", SaldoAtual = 5, EstoqueMinimo = 5 },  // fora (=)
                     new Produto { Descricao = "Acima", SaldoAtual = 10, EstoqueMinimo = 5 });   // fora (>)
                 await contexto.SaveChangesAsync();
             }
@@ -145,9 +146,9 @@ namespace ApiControlePerifericos.Tests.Repositories
             var repo = new ProdutoRepository(contextoLeitura);
             var abaixo = (await repo.GetAbaixoEstoqueMinimoAsync()).ToList();
 
-            // Assert
-            Assert.Equal(2, abaixo.Count);
-            Assert.DoesNotContain(abaixo, p => p.Descricao == "Acima");
+            // Assert — só "Abaixo" entra; "NoLimite" e "Acima" ficam de fora
+            Assert.Single(abaixo);
+            Assert.Equal("Abaixo", abaixo[0].Descricao);
         }
     }
 }
