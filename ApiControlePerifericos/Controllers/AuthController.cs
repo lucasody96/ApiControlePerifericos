@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -86,6 +87,7 @@ namespace ApiControlePerifericos.Controllers
 
         [HttpPost]
         [Route("login")]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest model)
         {
             var user = await _userManager.FindByNameAsync(model.UserName!);
@@ -216,6 +218,7 @@ namespace ApiControlePerifericos.Controllers
 
         [HttpPost]
         [Route("refresh-token")]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> RefreshToken()
         {
             // Os tokens chegam pelos cookies httpOnly (o frontend não tem acesso a eles).
