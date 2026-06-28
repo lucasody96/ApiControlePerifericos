@@ -8,11 +8,13 @@ namespace ApiControlePerifericos.Services
     {
         private readonly IUnitOfWork _uof;
         private readonly ILogger<EstoqueService> _logger;
+        private readonly IProdutoCacheInvalidator _produtoCache;
 
-        public EstoqueService(IUnitOfWork uof, ILogger<EstoqueService> logger)
+        public EstoqueService(IUnitOfWork uof, ILogger<EstoqueService> logger, IProdutoCacheInvalidator produtoCache)
         {
             _uof = uof;
             _logger = logger;
+            _produtoCache = produtoCache;
         }
 
         public async Task<EstoqueResult> RegistrarEntradaAsync(int produtoId, int quantidade, string? registradoPor)
@@ -79,6 +81,11 @@ namespace ApiControlePerifericos.Services
 
             _uof.MovimentacaoRepository.Create(movimentacao);
             await _uof.CommitAsync();
+
+            // A movimentação alterou o SaldoAtual do produto (entidade rastreada),
+            // sem passar pelo Update do repositório — então invalida o cache de
+            // produtos explicitamente, já com a alteração persistida.
+            _produtoCache.InvalidarProdutos();
 
             _logger.LogInformation("Movimentação tipo {Tipo} registrada: produto {ProdutoId}, quantidade {Quantidade}.",
                 tipo, produtoId, quantidade);

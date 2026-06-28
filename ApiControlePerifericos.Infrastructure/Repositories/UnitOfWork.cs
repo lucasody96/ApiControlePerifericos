@@ -5,43 +5,27 @@ namespace ApiControlePerifericos.Repositories
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private IColaboradorRepository? _colaboradorRepo;
-        private IProdutoRepository? _produtoRepo;
-        private IMovimentacaoRepository? _movimentacaoRepo;
+        private readonly AppDbContext _context;
 
-        private AppDbContext _context;
-
-        public UnitOfWork(AppDbContext context)
+        // Os repositórios vêm do DI (não mais via `new`) — assim o container injeta
+        // os decorators de cache (CachedProdutoRepository/CachedColaboradorRepository).
+        // Todos compartilham o mesmo AppDbContext scoped, então o CommitAsync persiste
+        // as alterações feitas por qualquer um deles na mesma transação.
+        public UnitOfWork(
+            AppDbContext context,
+            IColaboradorRepository colaboradorRepository,
+            IProdutoRepository produtoRepository,
+            IMovimentacaoRepository movimentacaoRepository)
         {
             _context = context;
+            ColaboradorRepository = colaboradorRepository;
+            ProdutoRepository = produtoRepository;
+            MovimentacaoRepository = movimentacaoRepository;
         }
 
-        //Lazy loading
-        public IColaboradorRepository ColaboradorRepository
-        {
-            get
-            {
-                return _colaboradorRepo ??= new ColaboradorRepository(_context);
-                // Mesma coisa que:
-                // return _colaboradorRepo = _colaboradorRepo ?? new ColaboradorRepository(_context);
-            }
-        }
-
-        public IProdutoRepository ProdutoRepository
-        {
-            get
-            {
-                return _produtoRepo ??= new ProdutoRepository(_context);
-            }
-        }
-
-        public IMovimentacaoRepository MovimentacaoRepository
-        {
-            get
-            {
-                return _movimentacaoRepo ??= new MovimentacaoRepository(_context);
-            }
-        }
+        public IColaboradorRepository ColaboradorRepository { get; }
+        public IProdutoRepository ProdutoRepository { get; }
+        public IMovimentacaoRepository MovimentacaoRepository { get; }
 
         public async Task CommitAsync()
         {

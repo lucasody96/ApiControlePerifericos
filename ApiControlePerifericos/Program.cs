@@ -1,4 +1,5 @@
 using ApiControlePerifericos.Auth;
+using ApiControlePerifericos.Caching;
 using ApiControlePerifericos.Context;
 using ApiControlePerifericos.DTOs.Mappings;
 using ApiControlePerifericos.Filters;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -186,8 +188,27 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ApiLoggingFilter>();
 
-builder.Services.AddScoped<IColaboradorRepository, ColaboradorRepository>();
-builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+// Cache em memória (issue #117): decorators sobre os repositórios de Produto e
+// Colaborador servem leituras do IMemoryCache e invalidam por grupo na escrita.
+// CacheTokens e o invalidador são singletons (o estado de invalidação é global).
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<CacheTokens>();
+builder.Services.AddSingleton<IProdutoCacheInvalidator, ProdutoCacheInvalidator>();
+
+// Repositório concreto + decorator de cache. O UnitOfWork recebe as interfaces
+// (já decoradas) via DI, então toda leitura passa pelo cache.
+builder.Services.AddScoped<ProdutoRepository>();
+builder.Services.AddScoped<IProdutoRepository>(sp => new CachedProdutoRepository(
+    sp.GetRequiredService<ProdutoRepository>(),
+    sp.GetRequiredService<IMemoryCache>(),
+    sp.GetRequiredService<CacheTokens>()));
+
+builder.Services.AddScoped<ColaboradorRepository>();
+builder.Services.AddScoped<IColaboradorRepository>(sp => new CachedColaboradorRepository(
+    sp.GetRequiredService<ColaboradorRepository>(),
+    sp.GetRequiredService<IMemoryCache>(),
+    sp.GetRequiredService<CacheTokens>()));
+
 builder.Services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
