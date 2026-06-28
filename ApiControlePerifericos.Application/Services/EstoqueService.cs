@@ -1,5 +1,6 @@
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using Microsoft.Extensions.Logging;
 
 namespace ApiControlePerifericos.Services
 {
