@@ -10,12 +10,14 @@ using ApiControlePerifericos.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -112,6 +114,45 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Admin").RequireClaim("id", superAdmins));
 
     options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+});
+
+// Rate limiting do login (proteção contra brute force). Limites parametrizáveis em
+// RateLimiting:Login (appsettings); default 5 tentativas por janela de 60s.
+const string LoginRateLimitPolicy = "login";
+var loginPermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:Login:PermitLimit") ?? 5;
+var loginWindowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:Login:WindowSeconds") ?? 60;
+var loginQueueLimit = builder.Configuration.GetValue<int?>("RateLimiting:Login:QueueLimit") ?? 0;
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Particiona por IP do cliente. Atrás do proxy do Cloud Run, RemoteIpAddress só é
+    // o IP real porque UseForwardedHeaders roda antes de UseRateLimiter no pipeline —
+    // senão particionaríamos pelo IP do proxy e limitaríamos todos os usuários juntos.
+    options.AddPolicy(LoginRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = loginPermitLimit,
+                Window = TimeSpan.FromSeconds(loginWindowSeconds),
+                QueueLimit = loginQueueLimit,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
+    // Resposta amigável ao estourar o limite, com Retry-After quando a janela é conhecida.
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString();
+
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { message = "Muitas tentativas. Tente novamente em alguns instantes." },
+            cancellationToken);
+    };
 });
 
 // CORS para o frontend (React/Vite). Origens permitidas vêm de Cors:AllowedOrigins
@@ -242,6 +283,10 @@ var forwardedOptions = new ForwardedHeadersOptions
 forwardedOptions.KnownIPNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
+
+// Depois de UseForwardedHeaders para que o particionamento por IP use o endereço real
+// do cliente (X-Forwarded-For), não o do proxy do Cloud Run.
+app.UseRateLimiter();
 
 // Em producao (Cloud Run) o container escuta apenas HTTP; o redirect para HTTPS
 // e responsabilidade do proxy. Manter o redirect aqui causaria warning/loop.
