@@ -1,3 +1,4 @@
+using ApiControlePerifericos.Auth;
 using ApiControlePerifericos.DTOs.Identity;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models.Identity;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -119,12 +121,12 @@ namespace ApiControlePerifericos.Controllers
 
             await _userManager.UpdateAsync(user);
 
-            return Ok(new
-            {
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
-                Expiration = token.ValidTo,
-                RefreshToken = refreshToken
-            });
+            // Os tokens vão em cookies httpOnly (inacessíveis ao JS, mitiga XSS); o corpo
+            // devolve só a identidade para o frontend popular a sessão sem decodificar o JWT.
+            EscreverCookiesDeAutenticacao(
+                new JwtSecurityTokenHandler().WriteToken(token), refreshToken, refreshTokenValidityInMinutes);
+
+            return Ok(new { username = user.UserName, roles = userRoles });
         }
 
         [HttpPost]
@@ -214,26 +216,34 @@ namespace ApiControlePerifericos.Controllers
 
         [HttpPost]
         [Route("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] TokenResponse model)
+        public async Task<IActionResult> RefreshToken()
         {
-            if (model is null)
-                return BadRequest("Requisição inválida");
+            // Os tokens chegam pelos cookies httpOnly (o frontend não tem acesso a eles).
+            var accessToken = Request.Cookies[AuthCookies.AccessToken];
+            var refreshToken = Request.Cookies[AuthCookies.RefreshToken];
 
-            string? accessToken = model.AccessToken ?? throw new ArgumentNullException(nameof(model));
+            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+                return Unauthorized(new { message = "Sessão inválida" });
 
-            string? refreshToken = model.RefreshToken ?? throw new ArgumentNullException(nameof(model));
-
-            var principal = _tokenService.GetPrincipalFromExpiredToken(accessToken!);
+            ClaimsPrincipal? principal;
+            try
+            {
+                principal = _tokenService.GetPrincipalFromExpiredToken(accessToken);
+            }
+            catch (SecurityTokenException)
+            {
+                return Unauthorized(new { message = "Access token inválido" });
+            }
 
             if (principal is null)
-                return BadRequest("Access token ou refresh token inválido");
+                return Unauthorized(new { message = "Access token inválido" });
 
             var username = principal.Identity!.Name;
 
             var user = await _userManager.FindByNameAsync(username!);
 
             if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-                return BadRequest("Requisição inválida");
+                return Unauthorized(new { message = "Sessão inválida" });
 
             var newAccessToken = _tokenService.GenerateToken(principal.Claims.ToList());
 
@@ -246,12 +256,41 @@ namespace ApiControlePerifericos.Controllers
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(refreshTokenValidityInMinutes);
             await _userManager.UpdateAsync(user);
 
-            return Ok(new
-            {
-                accessToken = new JwtSecurityTokenHandler().WriteToken(newAccessToken),
-                refreshToken = newRefreshToken
-            });
+            EscreverCookiesDeAutenticacao(
+                new JwtSecurityTokenHandler().WriteToken(newAccessToken), newRefreshToken, refreshTokenValidityInMinutes);
 
+            return NoContent();
+        }
+
+        [HttpGet]
+        [Route("me")]
+        [Authorize]
+        public IActionResult Me()
+        {
+            // Como o token agora é httpOnly, o frontend não consegue mais decodificá-lo;
+            // este endpoint expõe a identidade da sessão (username + roles) para a UI.
+            var username = User.Identity!.Name;
+            var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+
+            return Ok(new { username, roles });
+        }
+
+        [HttpPost]
+        [Route("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var user = await _userManager.FindByNameAsync(User.Identity!.Name!);
+
+            if (user != null)
+            {
+                user.RefreshToken = null;
+                await _userManager.UpdateAsync(user);
+            }
+
+            LimparCookiesDeAutenticacao();
+
+            return NoContent();
         }
 
         [Authorize(Policy = "SuperAdminOnly")]
@@ -274,6 +313,49 @@ namespace ApiControlePerifericos.Controllers
             return NoContent();
 
         }
+
+        // Grava os 3 cookies do fluxo de autenticação: access e refresh são httpOnly
+        // (o JS nunca os lê — mitiga XSS); o XSRF-TOKEN é legível pelo JS para o esquema
+        // double-submit anti-CSRF. SameSite=None + Secure porque front e API ficam em
+        // domínios diferentes (Vercel ↔ Cloud Run) — o cookie precisa cruzar sites.
+        private void EscreverCookiesDeAutenticacao(string accessToken, string refreshToken, int refreshTokenValidityInMinutes)
+        {
+            var agora = DateTimeOffset.UtcNow;
+
+            int.TryParse(_configuration["JWT:TokenValidityInMinutes"], out int accessTokenValidityInMinutes);
+            if (accessTokenValidityInMinutes <= 0)
+                accessTokenValidityInMinutes = 30;
+
+            var csrfToken = _tokenService.GenerateRefreshToken();
+
+            Response.Cookies.Append(AuthCookies.AccessToken, accessToken,
+                OpcoesCookie(httpOnly: true, agora.AddMinutes(accessTokenValidityInMinutes)));
+
+            Response.Cookies.Append(AuthCookies.RefreshToken, refreshToken,
+                OpcoesCookie(httpOnly: true, agora.AddMinutes(refreshTokenValidityInMinutes)));
+
+            // O cookie CSRF acompanha a vida do refresh token (a sessão "longa").
+            Response.Cookies.Append(AuthCookies.Csrf, csrfToken,
+                OpcoesCookie(httpOnly: false, agora.AddMinutes(refreshTokenValidityInMinutes)));
+        }
+
+        private void LimparCookiesDeAutenticacao()
+        {
+            // O Delete precisa repetir os mesmos atributos (Secure/SameSite/Path) usados
+            // na escrita, senão o navegador não casa o cookie e não o remove.
+            Response.Cookies.Delete(AuthCookies.AccessToken, OpcoesCookie(httpOnly: true, expires: null));
+            Response.Cookies.Delete(AuthCookies.RefreshToken, OpcoesCookie(httpOnly: true, expires: null));
+            Response.Cookies.Delete(AuthCookies.Csrf, OpcoesCookie(httpOnly: false, expires: null));
+        }
+
+        private static CookieOptions OpcoesCookie(bool httpOnly, DateTimeOffset? expires) => new()
+        {
+            HttpOnly = httpOnly,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/",
+            Expires = expires
+        };
 
         // Super admins são definidos pela allowlist de usernames em config
         // (seção "SuperAdmins"), a mesma usada pela policy SuperAdminOnly.
