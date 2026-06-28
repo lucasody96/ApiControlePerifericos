@@ -15,16 +15,17 @@ namespace ApiControlePerifericos.Tests.Services
         private readonly Mock<IMovimentacaoRepository> _movimentacaoRepo = new();
         private readonly Mock<IUnitOfWork> _uow = new();
         private readonly Mock<ILogger<EstoqueService>> _logger = new();
+        private readonly Mock<IProdutoCacheInvalidator> _produtoCache = new();
         private readonly EstoqueService _service;
 
         public EstoqueServiceTests()
         {
-            // Liga o UnitOfWork mockado aos repositórios mockados.
+            // Liga o UnitOfWork mockado aos repositï¿½rios mockados.
             _uow.Setup(u => u.ProdutoRepository).Returns(_produtoRepo.Object);
             _uow.Setup(u => u.ColaboradorRepository).Returns(_colaboradorRepo.Object);
             _uow.Setup(u => u.MovimentacaoRepository).Returns(_movimentacaoRepo.Object);
 
-            _service = new EstoqueService(_uow.Object, _logger.Object);
+            _service = new EstoqueService(_uow.Object, _logger.Object, _produtoCache.Object);
         }
 
         //Helpers de Arrange
@@ -65,6 +66,33 @@ namespace ApiControlePerifericos.Tests.Services
 
             _movimentacaoRepo.Verify(r => r.Create(It.IsAny<Movimentacao>()), Times.Once);
             _uow.Verify(u => u.CommitAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task RegistrarEntradaAsync_DeveInvalidarCacheDeProdutos_QuandoSucesso()
+        {
+            // Arrange
+            var produto = new Produto { ProdutoId = 1, Descricao = "Mouse", SaldoAtual = 10 };
+            ConfigurarProduto(produto);
+
+            // Act
+            await _service.RegistrarEntradaAsync(produtoId: 1, quantidade: 5, registradoPor: "lucas.ody");
+
+            // Assert: o saldo mudou, entÃ£o o cache de produtos deve ser invalidado.
+            _produtoCache.Verify(c => c.InvalidarProdutos(), Times.Once);
+        }
+
+        [Fact]
+        public async Task RegistrarEntradaAsync_NaoDeveInvalidarCache_QuandoProdutoNaoEncontrado()
+        {
+            // Arrange
+            ConfigurarProduto(null);
+
+            // Act
+            await _service.RegistrarEntradaAsync(produtoId: 1, quantidade: 5, registradoPor: "lucas.ody");
+
+            // Assert: nada foi persistido, logo o cache nÃ£o deve ser invalidado.
+            _produtoCache.Verify(c => c.InvalidarProdutos(), Times.Never);
         }
 
         [Fact]
@@ -125,7 +153,7 @@ namespace ApiControlePerifericos.Tests.Services
             Movimentacao? capturada = null;
             _movimentacaoRepo.Setup(r => r.Create(It.IsAny<Movimentacao>()))
                              .Callback<Movimentacao>(m => capturada = m)
-                             .Returns((Movimentacao m) => m); // Retorna a mesma movimentação para evitar erros de null.
+                             .Returns((Movimentacao m) => m); // Retorna a mesma movimentaï¿½ï¿½o para evitar erros de null.
 
             //Act
             var resultado = await _service.RegistrarSaidaAsync(produtoId: 1, quantidade: 4, colaboradorId: 7, registradoPor: "lucas.ody");
@@ -178,7 +206,7 @@ namespace ApiControlePerifericos.Tests.Services
             Movimentacao? capturada = null;
             _movimentacaoRepo.Setup(r => r.Create(It.IsAny<Movimentacao>()))
                              .Callback<Movimentacao>(m => capturada = m)
-                             .Returns((Movimentacao m) => m); // Retorna a mesma movimentação para evitar erros de null.
+                             .Returns((Movimentacao m) => m); // Retorna a mesma movimentaï¿½ï¿½o para evitar erros de null.
 
             //Act
             var resultado = await _service.RegistrarAjusteAsync(produtoId: 1, quantidade: 3, registradoPor: "lucas.ody");
