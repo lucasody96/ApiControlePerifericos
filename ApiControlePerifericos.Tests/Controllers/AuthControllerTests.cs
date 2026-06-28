@@ -1,3 +1,4 @@
+using ApiControlePerifericos.Auth;
 using ApiControlePerifericos.Controllers;
 using ApiControlePerifericos.DTOs.Identity;
 using ApiControlePerifericos.Interfaces;
@@ -39,6 +40,13 @@ namespace ApiControlePerifericos.Tests.Controllers
                 _roleManager.Object,
                 _configuration.Object,
                 _logger.Object);
+
+            // HttpContext padrão para que login/refresh consigam escrever os cookies
+            // (Response.Cookies). Testes que precisam de usuário/cookies sobrescrevem.
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
         }
 
         // ─── Helpers de Arrange ──────────────────────────────────────────────────
@@ -53,13 +61,21 @@ namespace ApiControlePerifericos.Tests.Controllers
             var identity = new ClaimsIdentity(claims, "Test");
             var principal = new ClaimsPrincipal(identity);
 
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = principal }
-            };
+            _controller.ControllerContext.HttpContext.User = principal;
 
             var superAdmins = ehSuperAdmin ? new[] { userName } : Array.Empty<string>();
             ConfigurarSuperAdmins(superAdmins);
+        }
+
+        // Injeta cookies no request (formato do header Cookie). Usado pelo refresh,
+        // que passou a ler accessToken/refreshToken dos cookies em vez do corpo.
+        private void ConfigurarCookiesRequest(string? accessToken, string? refreshToken)
+        {
+            var partes = new List<string>();
+            if (accessToken is not null) partes.Add($"{AuthCookies.AccessToken}={accessToken}");
+            if (refreshToken is not null) partes.Add($"{AuthCookies.RefreshToken}={refreshToken}");
+            _controller.ControllerContext.HttpContext.Request.Headers.Cookie =
+                string.Join("; ", partes);
         }
 
         private void ConfigurarSuperAdmins(string[] userNames)
@@ -396,55 +412,56 @@ namespace ApiControlePerifericos.Tests.Controllers
         // ─── RefreshToken ─────────────────────────────────────────────────────────
 
         [Fact]
-        public async Task RefreshToken_ModelNulo_DeveRetornar400()
+        public async Task RefreshToken_SemCookies_DeveRetornar401()
         {
-            // Arrange
+            // Arrange — request sem os cookies de auth
             // Act
-            var result = await _controller.RefreshToken(null!);
+            var result = await _controller.RefreshToken();
 
             // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
+            Assert.IsType<UnauthorizedObjectResult>(result);
         }
 
         [Fact]
-        public async Task RefreshToken_PrincipalInvalido_DeveRetornar400()
+        public async Task RefreshToken_PrincipalInvalido_DeveRetornar401()
         {
             // Arrange
+            ConfigurarCookiesRequest("token-invalido", "qualquer");
             _tokenService
                 .Setup(t => t.GetPrincipalFromExpiredToken("token-invalido"))
                 .Returns((ClaimsPrincipal?)null);
-            var model = new TokenResponse { AccessToken = "token-invalido", RefreshToken = "qualquer" };
 
             // Act
-            var result = await _controller.RefreshToken(model);
+            var result = await _controller.RefreshToken();
 
             // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
+            Assert.IsType<UnauthorizedObjectResult>(result);
         }
 
         [Fact]
-        public async Task RefreshToken_UsuarioNaoEncontradoOuTokenExpirado_DeveRetornar400()
+        public async Task RefreshToken_UsuarioNaoEncontradoOuTokenExpirado_DeveRetornar401()
         {
             // Arrange
+            ConfigurarCookiesRequest("token-expirado", "refresh-antigo");
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "lucas") }, "Test");
             var principal = new ClaimsPrincipal(identity);
             _tokenService
                 .Setup(t => t.GetPrincipalFromExpiredToken("token-expirado"))
                 .Returns(principal);
             _userManager.Setup(u => u.FindByNameAsync("lucas")).ReturnsAsync((ApplicationUser?)null);
-            var model = new TokenResponse { AccessToken = "token-expirado", RefreshToken = "refresh-antigo" };
 
             // Act
-            var result = await _controller.RefreshToken(model);
+            var result = await _controller.RefreshToken();
 
             // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
+            Assert.IsType<UnauthorizedObjectResult>(result);
         }
 
         [Fact]
-        public async Task RefreshToken_Sucesso_DeveRetornar200ComNovosTokens()
+        public async Task RefreshToken_Sucesso_DeveRetornar204()
         {
             // Arrange
+            ConfigurarCookiesRequest("token-expirado", "refresh-valido");
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "lucas") }, "Test");
             var principal = new ClaimsPrincipal(identity);
             var user = new ApplicationUser
@@ -461,14 +478,13 @@ namespace ApiControlePerifericos.Tests.Controllers
             _tokenService.Setup(t => t.GenerateToken(It.IsAny<List<Claim>>())).Returns(new JwtSecurityToken());
             _tokenService.Setup(t => t.GenerateRefreshToken()).Returns("novo-refresh-token");
             ConfigurarConfig("JWT:RefreshTokenValidityInMinutes", "60");
-            var model = new TokenResponse { AccessToken = "token-expirado", RefreshToken = "refresh-valido" };
 
             // Act
-            var result = await _controller.RefreshToken(model);
+            var result = await _controller.RefreshToken();
 
             // Assert
-            var ok = Assert.IsType<OkObjectResult>(result);
-            Assert.NotNull(ok.Value);
+            Assert.IsType<NoContentResult>(result);
+            Assert.Equal("novo-refresh-token", user.RefreshToken);
         }
 
         // ─── Revoke ───────────────────────────────────────────────────────────────
@@ -511,6 +527,47 @@ namespace ApiControlePerifericos.Tests.Controllers
 
             // Act
             var result = await _controller.Revoke("lucas");
+
+            // Assert
+            Assert.IsType<NoContentResult>(result);
+            Assert.Null(user.RefreshToken);
+        }
+
+        // ─── Me ─────────────────────────────────────────────────────────────────────
+
+        [Fact]
+        public void Me_UsuarioAutenticado_DeveRetornarUsernameERoles()
+        {
+            // Arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "lucas"),
+                new Claim(ClaimTypes.Role, "Admin")
+            };
+            _controller.ControllerContext.HttpContext.User =
+                new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
+
+            // Act
+            var result = _controller.Me();
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(ok.Value);
+        }
+
+        // ─── Logout ───────────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task Logout_DeveLimparRefreshTokenERetornar204()
+        {
+            // Arrange
+            ConfigurarUsuarioLogado("lucas");
+            var user = new ApplicationUser { UserName = "lucas", RefreshToken = "token-ativo" };
+            _userManager.Setup(u => u.FindByNameAsync("lucas")).ReturnsAsync(user);
+            _userManager.Setup(u => u.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+            // Act
+            var result = await _controller.Logout();
 
             // Assert
             Assert.IsType<NoContentResult>(result);

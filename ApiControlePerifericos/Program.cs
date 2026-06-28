@@ -1,3 +1,4 @@
+using ApiControlePerifericos.Auth;
 using ApiControlePerifericos.Context;
 using ApiControlePerifericos.DTOs.Mappings;
 using ApiControlePerifericos.Filters;
@@ -81,6 +82,20 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero
     };
+
+    // O access token vive num cookie httpOnly (inacessível ao JS, mitiga XSS). Se o
+    // cookie existir, usamos ele; senão, o JwtBearer cai no header Authorization
+    // padrão (mantém o Scalar e chamadas via Bearer funcionando para teste).
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var cookieToken = context.Request.Cookies[AuthCookies.AccessToken];
+            if (!string.IsNullOrEmpty(cookieToken))
+                context.Token = cookieToken;
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Allowlist de super admins (usernames), lida da config. Usada na policy e no
@@ -111,6 +126,9 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
+              // Necessário para o navegador enviar/receber os cookies de auth cross-site.
+              // Exige origens explícitas (não pode coexistir com AllowAnyOrigin).
+              .AllowCredentials()
               // Expõe o header de paginação para o JS do frontend conseguir lê-lo.
               .WithExposedHeaders("X-Pagination"));
 });
@@ -235,6 +253,10 @@ if (!app.Environment.IsProduction())
 app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
+
+// Valida o token anti-CSRF (double-submit) nas requisições que alteram estado.
+// Depois do CORS (deixa o preflight OPTIONS passar) e antes da autorização.
+app.UseMiddleware<CsrfValidationMiddleware>();
 
 app.UseAuthorization();
 
