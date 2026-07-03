@@ -4,7 +4,7 @@ API REST para controle de periféricos e hardwares em coworkings. Permite gerenc
 
 O sistema está **em produção**, hospedado gratuitamente:
 
-- **Frontend** (React/Vite) na Vercel
+- **Frontend** (React/Vite) na Vercel — código em repositório dedicado (privado)
 - **API** (esta solução) no Google Cloud Run
 - **Banco** no TiDB Cloud (MySQL-compatível)
 
@@ -24,7 +24,7 @@ O sistema está **em produção**, hospedado gratuitamente:
 | Newtonsoft.Json | 13.0.4 | Serialização JSON |
 | xUnit + Moq | — | Testes unitários |
 
-**Frontend:** SPA em React + Vite (pasta `frontend/`), consumida via CORS.
+**Frontend:** SPA em React + Vite, mantida em **repositório separado** e consumida por esta API via CORS.
 
 ## Domínios
 
@@ -111,15 +111,15 @@ ApiControlePerifericos/            # WebApi (startup)
 └── appsettings.json
 
 ApiControlePerifericos.Tests/      # xUnit + Moq
-frontend/                          # SPA React + Vite
 ```
+
+> O **frontend** (React + Vite) fica em repositório próprio — não faz parte desta solução.
 
 ## Pré-requisitos
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - MySQL 8+ local (ou MariaDB compatível); em produção é TiDB Cloud
 - [EF Core CLI](https://learn.microsoft.com/en-us/ef/core/cli/dotnet): `dotnet tool install --global dotnet-ef`
-- Node.js (para o frontend)
 
 ## Como Executar
 
@@ -150,13 +150,7 @@ A API sobe em:
 - **HTTPS:** `https://localhost:7081`
 - **Documentação interativa (Scalar):** `http://localhost:5045/scalar/v1`
 
-### 3. Rodar o frontend (opcional)
-
-```bash
-cd frontend
-npm install
-npm run dev          # http://localhost:5173
-```
+> O **frontend** (React + Vite) vive em repositório próprio, com instruções de execução no README dele.
 
 ### Build
 

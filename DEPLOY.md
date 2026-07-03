@@ -82,9 +82,11 @@ Pre-requisito: instalar o [Google Cloud CLI (`gcloud`)](https://cloud.google.com
 
 ## Passo 3 — Frontend: Vercel
 
+> O frontend fica em **repositorio proprio** (React + Vite), separado desta API.
+
 1. Criar conta em https://vercel.com (login com GitHub).
-2. **Import Project** -> selecionar este repositorio.
-3. Em **Root Directory**, escolher `frontend` (o front esta em subpasta do monorepo).
+2. **Import Project** -> selecionar o repositorio do frontend.
+3. **Root Directory**: deixar vazio (o codigo esta na raiz do repositorio).
 4. Framework Preset: **Vite** (detectado automaticamente).
 5. Em **Environment Variables**, adicionar:
 
