@@ -180,20 +180,25 @@ dotnet ef database update \
 
 ## Autenticação & Autorização
 
-A API usa **JWT Bearer** com ASP.NET Identity. Faça login para obter um `Token` (+ `RefreshToken`) e envie `Authorization: Bearer <token>` nas requisições.
+A API usa **JWT** com ASP.NET Identity, mas o token **não trafega no corpo nem no header** `Authorization`: após o `login`, o access token e o refresh token são gravados em **cookies `httpOnly`** (inacessíveis ao JavaScript, mitigando XSS) e enviados automaticamente pelo navegador. O corpo do `login` devolve apenas `{ username, roles }`.
+
+- **Proteção CSRF (double-submit):** como a sessão vive em cookie, requisições que **alteram estado** (POST/PUT/DELETE) exigem um token anti-CSRF — um cookie legível pelo JS (`httpOnly: false`) que o frontend reenvia num header, validado pelo `CsrfValidationMiddleware`.
+- **Rate limiting:** `/login` e `/refresh-token` têm limite de tentativas por IP (janela fixa); ao estourar, retornam `429 Too Many Requests` com `Retry-After`.
 
 ### Endpoints de Auth — `/api/Auth`
 
 | Método | Rota | Acesso | Descrição |
 |---|---|---|---|
-| `POST` | `/api/Auth/login` | Público | Valida credenciais e devolve `Token` + `Expiration` + `RefreshToken` |
-| `POST` | `/api/Auth/refresh-token` | Público | Troca um access token expirado + refresh token válido por um novo par |
+| `POST` | `/api/Auth/login` | Público | Valida credenciais, grava os tokens em cookies `httpOnly` e devolve `{ username, roles }` |
+| `POST` | `/api/Auth/refresh-token` | Público | Lê o par de tokens dos cookies e o renova (novo access + refresh) |
+| `GET` | `/api/Auth/me` | Autenticado | Retorna `username` + roles da sessão (o token é httpOnly; o front não o decodifica) |
+| `POST` | `/api/Auth/logout` | Autenticado | Limpa os cookies de autenticação e revoga o refresh token |
 | `POST` | `/api/Auth/Register` | AdminOnly | Cria usuário e o adiciona à role `User` |
 | `POST` | `/api/Auth/change-password` | Autenticado | Troca a própria senha (exige a atual) |
 | `POST` | `/api/Auth/reset-password` | AdminOnly | Reseta a senha de outro usuário (um Admin comum não reseta a de um super admin) |
 | `POST` | `/api/Auth/CreateRole` | SuperAdminOnly | Cria uma role |
 | `POST` | `/api/Auth/AddUserToRole` | SuperAdminOnly | Adiciona usuário a uma role |
-| `POST` | `/api/Auth/revoke/{username}` | SuperAdminOnly | Revoga o próprio refresh token |
+| `POST` | `/api/Auth/revoke/{username}` | SuperAdminOnly | Revoga o refresh token do próprio usuário |
 
 ### Gestão de usuários — `/api/Usuarios` (controller inteiro `AdminOnly`)
 
@@ -294,6 +299,8 @@ Content-Type: application/json
   "password": "minhaSenha"
 }
 ```
+
+> A resposta grava os cookies `httpOnly` de autenticação (access + refresh) e o cookie anti-CSRF; o corpo retorna apenas `{ username, roles }`.
 
 ### Cadastrar um produto
 
@@ -402,6 +409,7 @@ GET /api/produtos/pagination?pageNumber=1&pageSize=10
 | `201 Created` | Recurso criado (POST) |
 | `400 Bad Request` | Dados inválidos / saldo insuficiente |
 | `401 Unauthorized` | Token ausente ou inválido |
-| `403 Forbidden` | Autenticado, mas sem permissão para a ação |
+| `403 Forbidden` | Autenticado, mas sem permissão para a ação (ou token CSRF ausente/inválido) |
 | `404 Not Found` | Recurso não encontrado |
+| `429 Too Many Requests` | Limite de tentativas de login/refresh excedido (rate limiting) |
 | `500 Internal Server Error` | Erro não tratado (capturado pelo `ApiExceptionFilter`) |
