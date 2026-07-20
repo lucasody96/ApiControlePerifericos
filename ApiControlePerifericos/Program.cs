@@ -67,6 +67,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>().
     AddDefaultTokenProviders();
 
 var secretKey = builder.Configuration["JWT:SecretKey"] ?? throw new ArgumentException("Invalid sercret key!");
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
