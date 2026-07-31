@@ -1,5 +1,6 @@
 ﻿using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.DTOs.Estoque;
+using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
@@ -7,7 +8,6 @@ using ApiControlePerifericos.Services;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using X.PagedList;
 
 namespace ApiControlePerifericos.Controllers
@@ -88,7 +88,7 @@ namespace ApiControlePerifericos.Controllers
                 return NotFound("Nenhuma movimentação encontrada para o relatório.");
             }
 
-            ObterNovoMetadata(movimentacoes);
+            Response.AdicionarHeaderDePaginacao(movimentacoes);
 
             var relatorioDTO = _mapper.Map<IEnumerable<MovimentacaoRelatorioDTO>>(movimentacoes);
 
@@ -199,24 +199,9 @@ namespace ApiControlePerifericos.Controllers
             return null;
         }
 
-        private void ObterNovoMetadata(IPagedList<Movimentacao> movimentacoes)
-        {
-            var metadata = new
-            {
-                movimentacoes.Count,
-                movimentacoes.PageSize,
-                movimentacoes.PageCount,
-                movimentacoes.TotalItemCount,
-                movimentacoes.HasNextPage,
-                movimentacoes.HasPreviousPage
-            };
-
-            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
-        }
-
         private ActionResult<IEnumerable<MovimentacaoDTO>> ObterMovimentacoes(IPagedList<Movimentacao> movimentacoes)
         {
-            ObterNovoMetadata(movimentacoes);
+            Response.AdicionarHeaderDePaginacao(movimentacoes);
 
             var movimentacoesDTO = _mapper.Map<IEnumerable<MovimentacaoDTO>>(movimentacoes);
             return Ok(movimentacoesDTO);

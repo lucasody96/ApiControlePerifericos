@@ -84,7 +84,7 @@ Controller → IUnitOfWork → IRepositorioEspecializado → Repository<T> → A
 ApiControlePerifericos.Domain/
 ├── Models/                        # Produto, Colaborador, Movimentacao
 ├── Interfaces/                    # IRepository<T>, IUnitOfWork, I{Produto,Colaborador,Movimentacao}Repository
-└── Pagination/                    # QueryStringParameters (base), PagedList<T> + filtros por recurso
+└── Pagination/                    # QueryStringParameters (base) + filtros por recurso
 
 ApiControlePerifericos.Application/
 ├── Services/                      # EstoqueService, EstoqueResult
@@ -108,7 +108,7 @@ ApiControlePerifericos.Infrastructure/
 
 ApiControlePerifericos/            # WebApi (startup)
 ├── Controllers/                   # Produtos, Colaboradores, Movimentacoes, Auth, Usuarios
-├── Filters/                       # ApiExceptionFilter, ApiLoggingFilter
+├── Filters/                       # ApiExceptionFilter
 ├── Auth/                          # AuthCookies, CsrfValidationMiddleware
 ├── Logging/                       # CustomLoggerProvider → Log.txt
 ├── Program.cs                     # Composition root (DI + pipeline)
@@ -220,7 +220,6 @@ A API usa **JWT** com ASP.NET Identity, mas o token **não trafega no corpo nem 
 
 - `AdminOnly` — `RequireRole("Admin")`.
 - `SuperAdminOnly` — `RequireRole("Admin")` **e** estar na allowlist `SuperAdmins` (config; default `["lucas.ody", "admin"]`).
-- `UserOnly` — `RequireRole("User")` (definida, ainda não usada).
 
 ## Endpoints de Domínio
 

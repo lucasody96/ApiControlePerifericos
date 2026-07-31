@@ -1,11 +1,11 @@
 ﻿using ApiControlePerifericos.DTOs;
+using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using X.PagedList;
 
 namespace ApiControlePerifericos.Controllers
@@ -65,18 +65,7 @@ namespace ApiControlePerifericos.Controllers
 
         private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(IPagedList<Produto> produtos)
         {
-            // TODO - Extrair a montagem do metadata para um método
-            var metadata = new
-            {
-                produtos.Count,
-                produtos.PageSize,
-                produtos.PageCount,
-                produtos.TotalItemCount,
-                produtos.HasNextPage,
-                produtos.HasPreviousPage
-            };
-
-            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+            Response.AdicionarHeaderDePaginacao(produtos);
 
             var produtosDTO = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
             return Ok(produtosDTO);

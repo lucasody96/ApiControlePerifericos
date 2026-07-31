@@ -33,7 +33,6 @@ repositório dependem dela).
 | Campo de Unit of Work — testes | `_uow` (diverge da produção; siga o lado em que estiver escrevendo) |
 | Leitura rastreada | `IProdutoRepository.GetByIdTrackedAsync(int)` e `IMovimentacaoRepository.GetByIdTrackedAsync(int)` |
 | Filtro de exceção global | `ApiExceptionFilter` — `Filters/ApiExceptionFilter.cs` |
-| Filtro de log opt-in | `ApiLoggingFilter`, via `[ServiceFilter(typeof(ApiLoggingFilter))]` |
 | Objeto de resultado | `EstoqueResult` + `EstoqueResultStatus` — `Application/Services/EstoqueResult.cs` |
 | Tradutor status → HTTP | `MovimentacoesController.MapearFalha` (só falhas; o sucesso é 201 em `ProcessarResultado` e 200 em `ProcessarEscritaDeHistorico`) |
 | Rotas nomeadas do `POST` | `ObterProduto`, `ObterColaborador`, `ObterMovimentacao` |
@@ -44,18 +43,24 @@ repositório dependem dela).
 - Base: `QueryStringParameters` — `Domain/Pagination/`.
 - `MaxPageSize = 50`, e o **default é o próprio máximo**: `/pagination` sem `pageSize` traz 50.
 - Header de metadados: `X-Pagination`, serializado com **`JsonConvert`** (Newtonsoft).
+- Montagem e escrita do header: extensão `Response.AdicionarHeaderDePaginacao(pagina)` em
+  `Extensions/PaginacaoResponseExtensions.cs` (WebApi). É o ponto único — não recrie o objeto
+  anônimo de metadata no controller.
 - Exposto ao frontend por `WithExposedHeaders("X-Pagination")` na política `FrontendCors`.
 - Parâmetros concretos com filtro próprio: `MovimentacoesParameters` (`DataInicio`, `DataFim`,
   `DescricaoProduto`, `NomeColaborador`) e `UsuariosParameters` (`Busca`).
 
 ## Autorização
 
-Policies em `Program.cs`: `AdminOnly`, `SuperAdminOnly`, `UserOnly` (esta última declarada e ainda
-não usada).
+Policies em `Program.cs`: `AdminOnly` e `SuperAdminOnly` — só essas duas. A `UserOnly` foi removida
+na issue #22 (declarada, nunca aplicada); a role `"User"` em si continua existindo.
 
 `SuperAdminOnly` = role `Admin` **mais** claim `id` numa allowlist que vem da config `SuperAdmins`
-(User Secrets/appsettings), com fallback `["lucas.ody", "admin"]`. A **mesma** lista é lida por
-`AuthController.EhSuperAdmin`. Para promover alguém, edite a config — não há lista hardcoded.
+(User Secrets/appsettings), com fallback `["lucas.ody", "admin"]` quando a seção está ausente ou
+vazia. A resolução tem um ponto único — `Auth/SuperAdminAllowlist` (`Resolver` / `Contem`) —
+consumido pela policy e por `AuthController.EhSuperAdmin`; ao ler a allowlist em algum lugar novo,
+chame esse tipo em vez de reler a seção. Para promover alguém, edite a config — não há lista
+hardcoded.
 
 Escalonamento em vigor nos controllers de domínio:
 

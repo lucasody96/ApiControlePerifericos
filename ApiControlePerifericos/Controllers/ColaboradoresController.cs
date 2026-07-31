@@ -1,11 +1,11 @@
 ﻿using ApiControlePerifericos.DTOs;
+using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using X.PagedList;
 
 namespace ApiControlePerifericos.Controllers
@@ -65,18 +65,7 @@ namespace ApiControlePerifericos.Controllers
 
         private ActionResult<IEnumerable<ColaboradorDTO>> ObterColaboradores(IPagedList<Colaborador> colaboradores)
         {
-            // TODO - Extrair a montagem do metadata para um método
-            var metadata = new
-            {
-                colaboradores.Count,
-                colaboradores.PageSize,
-                colaboradores.PageCount,
-                colaboradores.TotalItemCount,
-                colaboradores.HasNextPage,
-                colaboradores.HasPreviousPage
-            };
-
-            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+            Response.AdicionarHeaderDePaginacao(colaboradores);
 
             var colaboradoresDTO = _mapper.Map<IEnumerable<ColaboradorDTO>>(colaboradores);
             return Ok(colaboradoresDTO);
