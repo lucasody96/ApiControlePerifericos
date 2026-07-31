@@ -1,3 +1,4 @@
+using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.Services;
 
 namespace ApiControlePerifericos.Interfaces
@@ -14,5 +15,12 @@ namespace ApiControlePerifericos.Interfaces
 
         // Ajuste (perda/quebra): subtrai do saldo. Tipo 'A'.
         Task<EstoqueResult> RegistrarAjusteAsync(int produtoId, int quantidade, string? registradoPor);
+
+        // Correção de histórico: estorna do saldo o efeito da movimentação atual e
+        // aplica o da versão nova (que pode inclusive apontar para outro produto).
+        Task<EstoqueResult> AtualizarMovimentacaoAsync(int movimentacaoId, MovimentacaoDTO dto);
+
+        // Exclusão de histórico: estorna do saldo o efeito da movimentação removida.
+        Task<EstoqueResult> ExcluirMovimentacaoAsync(int movimentacaoId);
     }
 }

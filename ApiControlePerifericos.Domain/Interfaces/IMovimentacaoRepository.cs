@@ -10,6 +10,10 @@ namespace ApiControlePerifericos.Interfaces
 
         Task<IPagedList<Movimentacao>> GetRelatorioAsync(MovimentacoesParameters parameters);
 
+        // Retorna a movimentação rastreada pelo contexto, para permitir alterá-la ou
+        // excluí-la no mesmo CommitAsync que ajusta o saldo do produto.
+        Task<Movimentacao?> GetByIdTrackedAsync(int movimentacaoId);
+
         // Filtros sem paginação: histórico de movimentações de um produto/colaborador.
         Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId);
 
