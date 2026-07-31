@@ -293,7 +293,7 @@ A resposta inclui o header `X-Pagination` (exposto ao frontend via CORS) com met
 
 ## Exemplos de Uso
 
-> Todos os exemplos abaixo (exceto `login`) exigem o header `Authorization: Bearer <token>`.
+> Não existe header `Authorization`: depois do `login`, os cookies de sessão (`httpOnly`) vão automaticamente em cada requisição. Os exemplos de escrita abaixo (POST/PUT/DELETE) exigem ainda o header anti-CSRF `X-CSRF-Token`, com o valor do cookie `XSRF-TOKEN` gravado no login. Requisições `GET` não precisam dele.
 
 ### Login
 
