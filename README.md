@@ -83,34 +83,41 @@ Controller → IUnitOfWork → IRepositorioEspecializado → Repository<T> → A
 ```
 ApiControlePerifericos.Domain/
 ├── Models/                        # Produto, Colaborador, Movimentacao
-├── Interfaces/                    # IRepository<T>, IUnitOfWork, I{...}Repository
-└── Pagination/                    # QueryStringParameters (base) + filtros
+├── Interfaces/                    # IRepository<T>, IUnitOfWork, I{Produto,Colaborador,Movimentacao}Repository
+└── Pagination/                    # QueryStringParameters (base), PagedList<T> + filtros por recurso
 
 ApiControlePerifericos.Application/
 ├── Services/                      # EstoqueService, EstoqueResult
 ├── Interfaces/                    # IEstoqueService, IProdutoCacheInvalidator
 └── DTOs/
     ├── Estoque/                   # EntradaEstoqueRequest, SaidaEstoqueRequest, AjusteEstoqueRequest
-    ├── Identity/                  # LoginRequest, RegisterRequest, TokenResponse, etc.
-    ├── MovimentacaoRelatorioDTO.cs
+    ├── Identity/                  # LoginRequest, RegisterRequest, ChangePasswordRequest,
+    │                              #   AdminResetPasswordRequest, AtualizarRolesRequest,
+    │                              #   UsuarioResponse, Response
+    ├── ProdutoDTO.cs, ColaboradorDTO.cs, MovimentacaoDTO.cs, MovimentacaoRelatorioDTO.cs
     └── Mappings/MappingProfile.cs
 
 ApiControlePerifericos.Infrastructure/
 ├── Context/AppDbContext.cs        # IdentityDbContext<ApplicationUser>
 ├── Repositories/                  # Repository<T>, UnitOfWork, repos + decorators de cache
+├── Caching/                       # CacheGrupos, CacheTokens, ProdutoCacheInvalidator
 ├── Migrations/
+├── Interfaces/ITokenService.cs
 ├── Services/TokenService.cs
 └── Models/Identity/ApplicationUser.cs
 
 ApiControlePerifericos/            # WebApi (startup)
 ├── Controllers/                   # Produtos, Colaboradores, Movimentacoes, Auth, Usuarios
 ├── Filters/                       # ApiExceptionFilter, ApiLoggingFilter
-├── Auth/
+├── Auth/                          # AuthCookies, CsrfValidationMiddleware
 ├── Logging/                       # CustomLoggerProvider → Log.txt
 ├── Program.cs                     # Composition root (DI + pipeline)
 └── appsettings.json
 
 ApiControlePerifericos.Tests/      # xUnit + Moq
+├── Controllers/
+├── Repositories/
+└── Services/
 ```
 
 > O **frontend** (React + Vite) fica em repositório próprio — não faz parte desta solução.
