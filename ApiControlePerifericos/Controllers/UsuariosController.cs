@@ -1,10 +1,10 @@
 using ApiControlePerifericos.DTOs.Identity;
+using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Models.Identity;
 using ApiControlePerifericos.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using X.PagedList;
 using X.PagedList.Extensions;
 
@@ -46,17 +46,7 @@ namespace ApiControlePerifericos.Controllers
 
             var usuariosPaginados = query.OrderBy(u => u.UserName).ToPagedList(parameters.PageNumber, parameters.PageSize);
 
-            var metadata = new
-            {
-                usuariosPaginados.Count,
-                usuariosPaginados.PageSize,
-                usuariosPaginados.PageCount,
-                usuariosPaginados.TotalItemCount,
-                usuariosPaginados.HasNextPage,
-                usuariosPaginados.HasPreviousPage
-            };
-
-            Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+            Response.AdicionarHeaderDePaginacao(usuariosPaginados);
 
             return Ok(await MapearUsuariosAsync(usuariosPaginados));
         }

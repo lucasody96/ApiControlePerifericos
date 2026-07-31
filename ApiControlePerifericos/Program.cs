@@ -103,10 +103,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Allowlist de super admins (usernames), lida da config. Usada na policy e no
-// AuthController (proteção de reset de senha).
-var superAdmins = builder.Configuration.GetSection("SuperAdmins").Get<string[]>()
-    ?? ["lucas.ody", "admin"];
+// Allowlist de super admins (usernames), lida da config pelo mesmo ponto que o
+// AuthController usa na proteção de reset de senha — ver SuperAdminAllowlist.
+var superAdmins = SuperAdminAllowlist.Resolver(builder.Configuration);
 
 builder.Services.AddAuthorization(options =>
 {
@@ -115,8 +114,6 @@ builder.Services.AddAuthorization(options =>
     // Super admins: usuário Admin cujo claim "id" esteja na allowlist configurada.
     options.AddPolicy("SuperAdminOnly", policy =>
         policy.RequireRole("Admin").RequireClaim("id", superAdmins));
-
-    options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
 });
 
 // Rate limiting do login (proteção contra brute force). Limites parametrizáveis em
@@ -187,8 +184,6 @@ var serverVersion = new MySqlServerVersion(new Version(8, 0, 11));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(mySqlConnection, serverVersion));
 
-builder.Services.AddScoped<ApiLoggingFilter>();
-
 // Cache em memória (issue #117): decorators sobre os repositórios de Produto e
 // Colaborador servem leituras do IMemoryCache e invalidam por grupo na escrita.
 // CacheTokens e o invalidador são singletons (o estado de invalidação é global).
@@ -211,7 +206,6 @@ builder.Services.AddScoped<IColaboradorRepository>(sp => new CachedColaboradorRe
     sp.GetRequiredService<CacheTokens>()));
 
 builder.Services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();

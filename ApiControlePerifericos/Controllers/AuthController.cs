@@ -359,14 +359,9 @@ namespace ApiControlePerifericos.Controllers
         };
 
         // Super admins são definidos pela allowlist de usernames em config
-        // (seção "SuperAdmins"), a mesma usada pela policy SuperAdminOnly.
-        private bool EhSuperAdmin(string? userName)
-        {
-            if (string.IsNullOrEmpty(userName))
-                return false;
-
-            var superAdmins = _configuration.GetSection("SuperAdmins").Get<string[]>() ?? [];
-            return superAdmins.Contains(userName, StringComparer.OrdinalIgnoreCase);
-        }
+        // (seção "SuperAdmins"), resolvida pelo mesmo ponto que alimenta a policy
+        // SuperAdminOnly — inclusive o fallback quando a seção está ausente ou vazia.
+        private bool EhSuperAdmin(string? userName) =>
+            SuperAdminAllowlist.Contem(_configuration, userName);
     }
 }
