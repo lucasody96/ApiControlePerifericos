@@ -112,8 +112,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 
     // Super admins: usuário Admin cujo claim "id" esteja na allowlist configurada.
+    // A avaliação passa por SuperAdminAllowlist.EhSuperAdmin em vez de RequireClaim porque
+    // o RequireClaim compara os valores do claim com StringComparer.Ordinal (case-sensitive)
+    // e divergia do AuthController.EhSuperAdmin — ver issue #26.
     options.AddPolicy("SuperAdminOnly", policy =>
-        policy.RequireRole("Admin").RequireClaim("id", superAdmins));
+        policy.RequireRole("Admin")
+              .RequireAssertion(context => SuperAdminAllowlist.EhSuperAdmin(context.User, superAdmins)));
 });
 
 // Rate limiting do login (proteção contra brute force). Limites parametrizáveis em
