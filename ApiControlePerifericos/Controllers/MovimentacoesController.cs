@@ -64,6 +64,10 @@ namespace ApiControlePerifericos.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters parameters)
         {
+            var intervaloInvalido = ValidarIntervaloDeDatas(parameters);
+            if (intervaloInvalido is not null)
+                return intervaloInvalido;
+
             var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(parameters);
             return ObterMovimentacoes(movimentacoes);
         }
@@ -72,8 +76,9 @@ namespace ApiControlePerifericos.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<MovimentacaoRelatorioDTO>>> GetRelatorio([FromQuery] MovimentacoesParameters parameters)
         {
-            if (parameters.DataInicio.HasValue && parameters.DataFim.HasValue && parameters.DataInicio > parameters.DataFim)
-                return BadRequest("DataInicio não pode ser maior que DataFim.");
+            var intervaloInvalido = ValidarIntervaloDeDatas(parameters);
+            if (intervaloInvalido is not null)
+                return intervaloInvalido;
 
             var movimentacoes = await _uof.MovimentacaoRepository.GetRelatorioAsync(parameters);
 
@@ -178,6 +183,22 @@ namespace ApiControlePerifericos.Controllers
         }
 
         //metodos privates
+
+        // DataInicio/DataFim valem para /pagination e /relatorio. Um intervalo invertido
+        // devolveria lista vazia em silêncio, então é rejeitado antes de ir ao banco.
+        private ActionResult? ValidarIntervaloDeDatas(MovimentacoesParameters parameters)
+        {
+            if (parameters.DataInicio.HasValue && parameters.DataFim.HasValue &&
+                parameters.DataInicio > parameters.DataFim)
+            {
+                _logger.LogWarning("Intervalo inválido: DataInicio {DataInicio} é maior que DataFim {DataFim}.",
+                                   parameters.DataInicio, parameters.DataFim);
+                return BadRequest("DataInicio não pode ser maior que DataFim.");
+            }
+
+            return null;
+        }
+
         private void ObterNovoMetadata(IPagedList<Movimentacao> movimentacoes)
         {
             var metadata = new

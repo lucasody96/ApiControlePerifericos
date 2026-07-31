@@ -199,5 +199,116 @@ namespace ApiControlePerifericos.Tests.Repositories
             Assert.Single(pagina);
             Assert.Equal(new DateTime(2026, 1, 15), pagina.First().DataMovimentacao);
         }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComFiltroDeData_DeveRetornarSomenteDoIntervalo()
+        {
+            // Arrange — 10/01, 15/01 e 18/01 às 23h (para provar que DataFim é inclusiva do dia)
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'E', Quantidade = 1, ProdutoId = 1, DataMovimentacao = new DateTime(2026, 1, 10) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 1, ProdutoId = 1, DataMovimentacao = new DateTime(2026, 1, 15) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 1, ProdutoId = 1, DataMovimentacao = new DateTime(2026, 1, 18, 23, 0, 0) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act — intervalo 12/01 a 18/01
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters
+            {
+                DataInicio = new DateTime(2026, 1, 12),
+                DataFim = new DateTime(2026, 1, 18)
+            });
+
+            // Assert — 15/01 e 18/01 23h entram; 10/01 fica de fora
+            Assert.Equal(2, pagina.TotalItemCount);
+            Assert.DoesNotContain(pagina, m => m.DataMovimentacao == new DateTime(2026, 1, 10));
+        }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComFiltroDescricaoProduto_DeveFiltrar()
+        {
+            // Arrange — produtos reais porque o filtro navega para Produto.Descricao
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                var mouse = new Produto { Descricao = "Mouse", SaldoAtual = 10 };
+                var teclado = new Produto { Descricao = "Teclado", SaldoAtual = 10 };
+                contexto.AddRange(mouse, teclado);
+                await contexto.SaveChangesAsync();
+
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'E', Quantidade = 1, ProdutoId = mouse.ProdutoId, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 5, ProdutoId = teclado.ProdutoId, DataMovimentacao = BaseData.AddDays(2) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters { DescricaoProduto = "Mouse" });
+
+            // Assert
+            Assert.Equal(1, pagina.TotalItemCount);
+            Assert.Equal(1, pagina.First().Quantidade);
+        }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComFiltroNomeColaborador_DeveFiltrar()
+        {
+            // Arrange — uma saída da Ana, uma do Bruno e uma entrada sem colaborador
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                var ana = new Colaborador { Nome = "Ana" };
+                var bruno = new Colaborador { Nome = "Bruno" };
+                contexto.AddRange(ana, bruno);
+                await contexto.SaveChangesAsync();
+
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = 1, ColaboradorId = ana.ColaboradorId, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = 1, ColaboradorId = bruno.ColaboradorId, DataMovimentacao = BaseData.AddDays(2) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 9, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(3) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters { NomeColaborador = "Ana" });
+
+            // Assert — só a saída da Ana; a entrada sem colaborador não passa no filtro
+            Assert.Equal(1, pagina.TotalItemCount);
+            Assert.Equal('S', pagina.First().Tipo);
+        }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComFiltrosVazios_DeveRetornarTudo()
+        {
+            // Arrange — filtro em branco não pode restringir nada
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'E', Quantidade = 1, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 2, ProdutoId = 2, DataMovimentacao = BaseData.AddDays(2) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters
+            {
+                DescricaoProduto = "",
+                NomeColaborador = "   "
+            });
+
+            // Assert
+            Assert.Equal(2, pagina.TotalItemCount);
+        }
     }
 }

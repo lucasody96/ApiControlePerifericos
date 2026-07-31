@@ -19,7 +19,7 @@ namespace ApiControlePerifericos.Repositories
         {
             // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
             // permite que a paginação (e o filtro) sejam feitos no banco de dados.
-            var query = _context.Set<Produto>().AsQueryable();
+            var query = _context.Set<Produto>().AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(parameters.Descricao))
                 query = query.Where(p => p.Descricao!.Contains(parameters.Descricao));

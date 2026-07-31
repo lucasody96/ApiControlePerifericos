@@ -2,6 +2,7 @@ using ApiControlePerifericos.Context;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
 using ApiControlePerifericos.Pagination;
+using Microsoft.EntityFrameworkCore;
 using X.PagedList;
 using X.PagedList.Extensions;
 
@@ -18,7 +19,7 @@ namespace ApiControlePerifericos.Repositories
         {
             // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
             // permite que a paginação (e o filtro) sejam feitos no banco de dados.
-            var query = _context.Set<Colaborador>().AsQueryable();
+            var query = _context.Set<Colaborador>().AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(parameters.Nome))
                 query = query.Where(c => c.Nome!.Contains(parameters.Nome));
