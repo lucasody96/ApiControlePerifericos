@@ -3,6 +3,7 @@ using ApiControlePerifericos.DTOs;
 using ApiControlePerifericos.DTOs.Estoque;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Models;
+using ApiControlePerifericos.Pagination;
 using ApiControlePerifericos.Services;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
@@ -509,6 +510,53 @@ namespace ApiControlePerifericos.Tests.Controllers
             _estoqueService.Verify(s => s.ExcluirMovimentacaoAsync(1), Times.Once);
             _movimentacaoRepo.Verify(r => r.Delete(It.IsAny<Movimentacao>()), Times.Never);
             _uow.Verify(u => u.CommitAsync(), Times.Never);
+        }
+
+        // ---------------------------- GET pagination / relatorio ------------------------------
+
+        /// <summary>
+        /// Testa se o Get paginado retorna 400 BadRequest quando DataInicio e maior que DataFim,
+        /// sem sequer consultar o repositorio.
+        /// </summary>
+        [Fact]
+        public async Task GetPagination_ComIntervaloInvertido_DeveRetornar400ENaoConsultarRepositorio()
+        {
+            // Arrange
+            var parameters = new MovimentacoesParameters
+            {
+                DataInicio = new DateTime(2026, 1, 20),
+                DataFim = new DateTime(2026, 1, 10)
+            };
+
+            // Act
+            var result = await _controller.Get(parameters);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _movimentacaoRepo.Verify(
+                r => r.GetMovimentacoesAsync(It.IsAny<MovimentacoesParameters>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Testa se o GetRelatorio mantem a mesma validacao de intervalo apos a extracao do helper.
+        /// </summary>
+        [Fact]
+        public async Task GetRelatorio_ComIntervaloInvertido_DeveRetornar400ENaoConsultarRepositorio()
+        {
+            // Arrange
+            var parameters = new MovimentacoesParameters
+            {
+                DataInicio = new DateTime(2026, 1, 20),
+                DataFim = new DateTime(2026, 1, 10)
+            };
+
+            // Act
+            var result = await _controller.GetRelatorio(parameters);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _movimentacaoRepo.Verify(
+                r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()), Times.Never);
         }
     }
 }

@@ -18,9 +18,14 @@ namespace ApiControlePerifericos.Repositories
         public async Task<IPagedList<Movimentacao>> GetMovimentacoesAsync(MovimentacoesParameters parameters)
         {
             // O uso de IQueryable em vez de GetAllAsync (que traz tudo para a memória)
-            // permite que a paginação seja feita diretamente no banco de dados.
-            var movimentacoesOrdenadas = _context.Set<Movimentacao>()
-                                                 .OrderByDescending(m => m.DataMovimentacao);
+            // permite que o filtro e a paginação sejam feitos no banco de dados.
+            // Sem Include: o filtro por Produto/Colaborador já vira JOIN sozinho e o
+            // MovimentacaoDTO não lê as propriedades de navegação (quem lê é o relatório).
+            var query = _context.Set<Movimentacao>().AsNoTracking();
+
+            query = AplicarFiltros(query, parameters);
+
+            var movimentacoesOrdenadas = query.OrderByDescending(m => m.DataMovimentacao);
 
             var movimentacoesPaginadas = movimentacoesOrdenadas.ToPagedList(parameters.PageNumber, parameters.PageSize);
 
@@ -34,22 +39,36 @@ namespace ApiControlePerifericos.Repositories
                                 .Include(m => m.Colaborador)
                                 .AsNoTracking()
                                 .AsQueryable();
+
+            query = AplicarFiltros(query, parameters);
+
+            // Ordenar por DataMovimentacao em ordem decrescente
+            var ordenadas = query.OrderByDescending(m => m.DataMovimentacao);
+            // Aplicar paginação
+            return await Task.FromResult(ordenadas.ToPagedList(parameters.PageNumber, parameters.PageSize));
+        }
+
+        // Filtros compartilhados por /pagination e /relatorio: os dois expõem o mesmo
+        // MovimentacoesParameters, então a semântica precisa ser idêntica nos dois.
+        private static IQueryable<Movimentacao> AplicarFiltros(IQueryable<Movimentacao> query,
+                                                               MovimentacoesParameters parameters)
+        {
             if (parameters.DataInicio.HasValue)
                 query = query.Where(m => m.DataMovimentacao >= parameters.DataInicio.Value);
 
+            // DataFim é inclusiva do dia inteiro: quem filtra até 18/01 espera as
+            // movimentações das 18h daquele dia, não só as da meia-noite.
             if (parameters.DataFim.HasValue)
                 query = query.Where(m => m.DataMovimentacao < parameters.DataFim.Value.Date.AddDays(1));
 
             if (!string.IsNullOrWhiteSpace(parameters.DescricaoProduto))
                 query = query.Where(m => m.Produto!.Descricao!.Contains(parameters.DescricaoProduto));
 
+            // Entrada e ajuste não têm colaborador, então naturalmente não passam neste filtro.
             if (!string.IsNullOrWhiteSpace(parameters.NomeColaborador))
                 query = query.Where(m => m.Colaborador!.Nome!.Contains(parameters.NomeColaborador));
 
-            // Ordenar por DataMovimentacao em ordem decrescente
-            var ordenadas = query.OrderByDescending(m => m.DataMovimentacao);
-            // Aplicar paginação
-            return await Task.FromResult(ordenadas.ToPagedList(parameters.PageNumber, parameters.PageSize));
+            return query;
         }
 
         public async Task<Movimentacao?> GetByIdTrackedAsync(int movimentacaoId)
