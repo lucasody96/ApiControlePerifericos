@@ -47,11 +47,16 @@ namespace ApiControlePerifericos.Tests.Controllers
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Movimentacao, bool>>>()))
                 .ReturnsAsync(movimentacao);
 
-        // O PUT verifica existencia via ExistsAsync (nao carrega a entidade).
-        private void ConfigurarExistencia(bool existe) =>
-            _movimentacaoRepo
-                .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Movimentacao, bool>>>()))
-                .ReturnsAsync(existe);
+        // Helpers: PUT e DELETE delegam ao EstoqueService, que devolve o EstoqueResult.
+        private void ConfigurarAtualizacao(EstoqueResult resultado) =>
+            _estoqueService
+                .Setup(s => s.AtualizarMovimentacaoAsync(It.IsAny<int>(), It.IsAny<MovimentacaoDTO>()))
+                .ReturnsAsync(resultado);
+
+        private void ConfigurarExclusao(EstoqueResult resultado) =>
+            _estoqueService
+                .Setup(s => s.ExcluirMovimentacaoAsync(It.IsAny<int>()))
+                .ReturnsAsync(resultado);
 
         // ---------------------------- GET lista ------------------------------
 
@@ -328,7 +333,8 @@ namespace ApiControlePerifericos.Tests.Controllers
         // ---------------------------- PUT ------------------------------
 
         /// <summary>
-        /// Testa se o Put retorna 400 BadRequest quando o id da rota diverge do id do DTO.
+        /// Testa se o Put retorna 400 BadRequest quando o id da rota diverge do id do DTO,
+        /// sem sequer acionar o EstoqueService.
         /// </summary>
         [Fact]
         public async Task Put_QuandoIdDivergeDoDTO_DeveRetornar400()
@@ -341,40 +347,96 @@ namespace ApiControlePerifericos.Tests.Controllers
 
             // Assert
             Assert.IsType<BadRequestObjectResult>(result.Result);
+            _estoqueService.Verify(
+                s => s.AtualizarMovimentacaoAsync(It.IsAny<int>(), It.IsAny<MovimentacaoDTO>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Testa se o Put delega ao EstoqueService (e nao escreve pelo repositorio),
+        /// repassando o id da rota e o DTO recebido.
+        /// </summary>
+        [Fact]
+        public async Task Put_DeveDelegarAoEstoqueService()
+        {
+            // Arrange
+            var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
+            var movimentacao = new Movimentacao { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
+            ConfigurarAtualizacao(EstoqueResult.Ok(movimentacao));
+            _mapper.Setup(m => m.Map<MovimentacaoDTO>(movimentacao)).Returns(movimentacaoDTO);
+
+            // Act
+            await _controller.Put(1, movimentacaoDTO);
+
+            // Assert: a regra de saldo vive no service; o controller nao toca no repositorio.
+            _estoqueService.Verify(s => s.AtualizarMovimentacaoAsync(1, movimentacaoDTO), Times.Once);
+            _movimentacaoRepo.Verify(r => r.Update(It.IsAny<Movimentacao>()), Times.Never);
             _uow.Verify(u => u.CommitAsync(), Times.Never);
         }
 
         /// <summary>
-        /// Testa se o Put retorna 404 NotFound quando a movimentacao nao existe.
+        /// Testa se o Put retorna 404 NotFound quando o service retorna MovimentacaoNaoEncontrada.
         /// </summary>
         [Fact]
         public async Task Put_QuandoMovimentacaoNaoExiste_DeveRetornar404()
         {
             // Arrange
             var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
-            ConfigurarExistencia(false);
+            ConfigurarAtualizacao(EstoqueResult.Falha(
+                EstoqueResultStatus.MovimentacaoNaoEncontrada, "Movimentacao nao encontrada."));
 
             // Act
             var result = await _controller.Put(1, movimentacaoDTO);
 
             // Assert
             Assert.IsType<NotFoundObjectResult>(result.Result);
-            _uow.Verify(u => u.CommitAsync(), Times.Never);
         }
 
         /// <summary>
-        /// Testa se o Put retorna 200 OK com o DTO atualizado quando a movimentacao e valida.
+        /// Testa se o Put retorna 400 BadRequest quando o estorno deixaria o saldo negativo.
+        /// </summary>
+        [Fact]
+        public async Task Put_QuandoSaldoNegativoAposEstorno_DeveRetornar400()
+        {
+            // Arrange
+            var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
+            ConfigurarAtualizacao(EstoqueResult.Falha(
+                EstoqueResultStatus.SaldoNegativoAposEstorno, "Saldo ficaria negativo."));
+
+            // Act
+            var result = await _controller.Put(1, movimentacaoDTO);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        /// <summary>
+        /// Testa se o Put retorna 400 BadRequest quando o service retorna TipoInvalido.
+        /// </summary>
+        [Fact]
+        public async Task Put_QuandoTipoInvalido_DeveRetornar400()
+        {
+            // Arrange
+            var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'X', Quantidade = 5, ProdutoId = 1 };
+            ConfigurarAtualizacao(EstoqueResult.Falha(EstoqueResultStatus.TipoInvalido, "Tipo invalido."));
+
+            // Act
+            var result = await _controller.Put(1, movimentacaoDTO);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        /// <summary>
+        /// Testa se o Put retorna 200 OK (e nao 201) com o DTO da movimentacao alterada.
         /// </summary>
         [Fact]
         public async Task Put_MovimentacaoValida_DeveRetornar200ComDTO()
         {
             // Arrange
-            var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
-            var movimentacao = new Movimentacao { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
+            var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'S', Quantidade = 2, ProdutoId = 1, ColaboradorId = 7 };
+            var movimentacao = new Movimentacao { MovimentacaoId = 1, Tipo = 'S', Quantidade = 2, ProdutoId = 1, ColaboradorId = 7 };
 
-            ConfigurarExistencia(true);
-            _mapper.Setup(m => m.Map<Movimentacao>(movimentacaoDTO)).Returns(movimentacao);
-            _movimentacaoRepo.Setup(r => r.Update(movimentacao)).Returns(movimentacao);
+            ConfigurarAtualizacao(EstoqueResult.Ok(movimentacao));
             _mapper.Setup(m => m.Map<MovimentacaoDTO>(movimentacao)).Returns(movimentacaoDTO);
 
             // Act
@@ -384,30 +446,47 @@ namespace ApiControlePerifericos.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var dto = Assert.IsType<MovimentacaoDTO>(ok.Value);
             Assert.Equal(1, dto.MovimentacaoId);
-            _uow.Verify(u => u.CommitAsync(), Times.Once);
         }
 
         // ---------------------------- DELETE ------------------------------
 
         /// <summary>
-        /// Testa se o Delete retorna 404 NotFound quando a movimentacao nao existe.
+        /// Testa se o Delete retorna 404 NotFound quando o service retorna MovimentacaoNaoEncontrada.
         /// </summary>
         [Fact]
         public async Task Delete_QuandoMovimentacaoNaoExiste_DeveRetornar404()
         {
             // Arrange
-            ConfigurarMovimentacao(null);
+            ConfigurarExclusao(EstoqueResult.Falha(
+                EstoqueResultStatus.MovimentacaoNaoEncontrada, "Movimentacao nao encontrada."));
 
             // Act
             var result = await _controller.Delete(99);
 
             // Assert
             Assert.IsType<NotFoundObjectResult>(result.Result);
-            _uow.Verify(u => u.CommitAsync(), Times.Never);
         }
 
         /// <summary>
-        /// Testa se o Delete retorna 200 OK com o DTO quando a movimentacao e excluida com sucesso.
+        /// Testa se o Delete retorna 400 BadRequest quando o estorno deixaria o saldo negativo.
+        /// </summary>
+        [Fact]
+        public async Task Delete_QuandoSaldoNegativoAposEstorno_DeveRetornar400()
+        {
+            // Arrange
+            ConfigurarExclusao(EstoqueResult.Falha(
+                EstoqueResultStatus.SaldoNegativoAposEstorno, "Saldo ficaria negativo."));
+
+            // Act
+            var result = await _controller.Delete(1);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        /// <summary>
+        /// Testa se o Delete delega ao EstoqueService e retorna 200 OK com o DTO excluido,
+        /// sem escrever pelo repositorio.
         /// </summary>
         [Fact]
         public async Task Delete_MovimentacaoValida_DeveRetornar200ComDTO()
@@ -416,8 +495,7 @@ namespace ApiControlePerifericos.Tests.Controllers
             var movimentacao = new Movimentacao { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
             var movimentacaoDTO = new MovimentacaoDTO { MovimentacaoId = 1, Tipo = 'E', Quantidade = 5, ProdutoId = 1 };
 
-            ConfigurarMovimentacao(movimentacao);
-            _movimentacaoRepo.Setup(r => r.Delete(movimentacao)).Returns(movimentacao);
+            ConfigurarExclusao(EstoqueResult.Ok(movimentacao));
             _mapper.Setup(m => m.Map<MovimentacaoDTO>(movimentacao)).Returns(movimentacaoDTO);
 
             // Act
@@ -427,7 +505,10 @@ namespace ApiControlePerifericos.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var dto = Assert.IsType<MovimentacaoDTO>(ok.Value);
             Assert.Equal(1, dto.MovimentacaoId);
-            _uow.Verify(u => u.CommitAsync(), Times.Once);
+
+            _estoqueService.Verify(s => s.ExcluirMovimentacaoAsync(1), Times.Once);
+            _movimentacaoRepo.Verify(r => r.Delete(It.IsAny<Movimentacao>()), Times.Never);
+            _uow.Verify(u => u.CommitAsync(), Times.Never);
         }
     }
 }

@@ -7,7 +7,15 @@ namespace ApiControlePerifericos.Services
         Sucesso,
         ProdutoNaoEncontrado,
         ColaboradorNaoEncontrado,
-        SaldoInsuficiente
+        SaldoInsuficiente,
+        MovimentacaoNaoEncontrada,
+        // Tipo fora de 'E'/'S'/'A' — sem ele não há como saber o efeito no saldo.
+        TipoInvalido,
+        // Saída sem colaborador: quem retirou o item é obrigatório no tipo 'S'.
+        ColaboradorObrigatorio,
+        // Alterar ou excluir uma movimentação estorna o efeito dela no saldo;
+        // se o resultado desse estorno for negativo, a operação é recusada.
+        SaldoNegativoAposEstorno
     }
 
     // Resultado de uma operação de estoque, permitindo ao controller mapear

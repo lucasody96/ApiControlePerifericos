@@ -31,11 +31,11 @@ repositório dependem dela).
 | --- | --- |
 | Campo de Unit of Work — produção | `_uof` |
 | Campo de Unit of Work — testes | `_uow` (diverge da produção; siga o lado em que estiver escrevendo) |
-| Leitura rastreada | `IProdutoRepository.GetByIdTrackedAsync(int)` |
+| Leitura rastreada | `IProdutoRepository.GetByIdTrackedAsync(int)` e `IMovimentacaoRepository.GetByIdTrackedAsync(int)` |
 | Filtro de exceção global | `ApiExceptionFilter` — `Filters/ApiExceptionFilter.cs` |
 | Filtro de log opt-in | `ApiLoggingFilter`, via `[ServiceFilter(typeof(ApiLoggingFilter))]` |
 | Objeto de resultado | `EstoqueResult` + `EstoqueResultStatus` — `Application/Services/EstoqueResult.cs` |
-| Tradutor status → HTTP | `MovimentacoesController.ProcessarResultado` |
+| Tradutor status → HTTP | `MovimentacoesController.MapearFalha` (só falhas; o sucesso é 201 em `ProcessarResultado` e 200 em `ProcessarEscritaDeHistorico`) |
 | Rotas nomeadas do `POST` | `ObterProduto`, `ObterColaborador`, `ObterMovimentacao` |
 
 ## Paginação

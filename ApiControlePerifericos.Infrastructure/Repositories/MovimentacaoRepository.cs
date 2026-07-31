@@ -52,6 +52,14 @@ namespace ApiControlePerifericos.Repositories
             return await Task.FromResult(ordenadas.ToPagedList(parameters.PageNumber, parameters.PageSize));
         }
 
+        public async Task<Movimentacao?> GetByIdTrackedAsync(int movimentacaoId)
+        {
+            // FindAsync busca pela PK e devolve a entidade rastreada (sem AsNoTracking),
+            // para que a alteração/exclusão da movimentação e o ajuste do SaldoAtual do
+            // produto sejam persistidos no mesmo CommitAsync.
+            return await _context.Set<Movimentacao>().FindAsync(movimentacaoId);
+        }
+
         public async Task<IEnumerable<Movimentacao>> GetByProdutoIdAsync(int produtoId)
         {
             return await _context.Set<Movimentacao>()

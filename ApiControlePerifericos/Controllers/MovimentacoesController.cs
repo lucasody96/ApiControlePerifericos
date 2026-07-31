@@ -160,37 +160,21 @@ namespace ApiControlePerifericos.Controllers
                 return BadRequest("Dados da movimentação inválidos ou ID da movimentação não corresponde ao ID fornecido.");
             }
 
-            var existe = await _uof.MovimentacaoRepository.ExistsAsync(m => m.MovimentacaoId == id);
-            if (!existe)
-            {
-                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
-                return NotFound($"Movimentação com ID {id} não encontrada.");
-            }
+            // Alterar o histórico mexe no SaldoAtual do produto (estorno do lançamento
+            // antigo + aplicação do novo), então o fluxo passa pelo EstoqueService.
+            var resultado = await _estoqueService.AtualizarMovimentacaoAsync(id, movimentacaoDTO);
 
-            var movimentacao = _mapper.Map<Movimentacao>(movimentacaoDTO);
-            var movimentacaoAtualizada = _uof.MovimentacaoRepository.Update(movimentacao);
-            await _uof.CommitAsync();
-
-            var movimentacaoAtualizadaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoAtualizada);
-            return Ok(movimentacaoAtualizadaDTO);
+            return ProcessarEscritaDeHistorico(resultado);
         }
 
         [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("{id:int}")]
         public async Task<ActionResult<MovimentacaoDTO>> Delete(int id)
         {
-            var movimentacao = await _uof.MovimentacaoRepository.GetAsync(m => m.MovimentacaoId == id);
-            if (movimentacao is null)
-            {
-                _logger.LogWarning("Movimentação com ID {Id} não encontrada.", id);
-                return NotFound($"Movimentação com ID {id} não encontrada.");
-            }
+            // Excluir estorna do saldo o efeito da movimentação — mesma razão do PUT.
+            var resultado = await _estoqueService.ExcluirMovimentacaoAsync(id);
 
-            var movimentacaoExcluida = _uof.MovimentacaoRepository.Delete(movimentacao);
-            await _uof.CommitAsync();
-
-            var movimentacaoExcluidaDTO = _mapper.Map<MovimentacaoDTO>(movimentacaoExcluida);
-            return Ok(movimentacaoExcluidaDTO);
+            return ProcessarEscritaDeHistorico(resultado);
         }
 
         //metodos privates
@@ -217,26 +201,44 @@ namespace ApiControlePerifericos.Controllers
             return Ok(movimentacoesDTO);
         }
 
-        // Mapeia o desfecho da operação de estoque para o status HTTP adequado.
+        // Registro de movimentação (POST): sucesso vira 201 apontando para o recurso criado.
         private ActionResult<MovimentacaoDTO> ProcessarResultado(EstoqueResult resultado)
         {
-            switch (resultado.Status)
-            {
-                case EstoqueResultStatus.ProdutoNaoEncontrado:
-                case EstoqueResultStatus.ColaboradorNaoEncontrado:
-                    return NotFound(resultado.Mensagem);
+            var falha = MapearFalha(resultado);
+            if (falha is not null)
+                return falha;
 
-                case EstoqueResultStatus.SaldoInsuficiente:
-                    return BadRequest(resultado.Mensagem);
-
-                case EstoqueResultStatus.Sucesso:
-                    var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(resultado.Movimentacao);
-                    return CreatedAtRoute("ObterMovimentacao",
-                        new { id = movimentacaoDTO.MovimentacaoId }, movimentacaoDTO);
-
-                default:
-                    return StatusCode(500, "Erro ao processar a movimentação.");
-            }
+            var movimentacaoDTO = _mapper.Map<MovimentacaoDTO>(resultado.Movimentacao);
+            return CreatedAtRoute("ObterMovimentacao",
+                new { id = movimentacaoDTO.MovimentacaoId }, movimentacaoDTO);
         }
+
+        // Correção de histórico (PUT/DELETE): sucesso vira 200 com a movimentação resultante.
+        private ActionResult<MovimentacaoDTO> ProcessarEscritaDeHistorico(EstoqueResult resultado)
+        {
+            var falha = MapearFalha(resultado);
+            if (falha is not null)
+                return falha;
+
+            return Ok(_mapper.Map<MovimentacaoDTO>(resultado.Movimentacao));
+        }
+
+        // Traduz apenas o desfecho de FALHA para o status HTTP; devolve null no sucesso,
+        // que cada endpoint representa de um jeito (201 no POST, 200 no PUT/DELETE).
+        private ActionResult? MapearFalha(EstoqueResult resultado) => resultado.Status switch
+        {
+            EstoqueResultStatus.Sucesso => null,
+
+            EstoqueResultStatus.ProdutoNaoEncontrado or
+            EstoqueResultStatus.ColaboradorNaoEncontrado or
+            EstoqueResultStatus.MovimentacaoNaoEncontrada => NotFound(resultado.Mensagem),
+
+            EstoqueResultStatus.SaldoInsuficiente or
+            EstoqueResultStatus.TipoInvalido or
+            EstoqueResultStatus.ColaboradorObrigatorio or
+            EstoqueResultStatus.SaldoNegativoAposEstorno => BadRequest(resultado.Mensagem),
+
+            _ => StatusCode(500, "Erro ao processar a movimentação.")
+        };
     }
 }
