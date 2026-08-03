@@ -89,6 +89,7 @@ ApiControlePerifericos.Domain/
 ApiControlePerifericos.Application/
 ├── Services/                      # EstoqueService, EstoqueResult
 ├── Interfaces/                    # IEstoqueService, IProdutoCacheInvalidator
+├── Extensions/                    # AddApplication (registro dos serviços de aplicação)
 └── DTOs/
     ├── Estoque/                   # EntradaEstoqueRequest, SaidaEstoqueRequest, AjusteEstoqueRequest
     ├── Identity/                  # LoginRequest, RegisterRequest, ChangePasswordRequest,
@@ -101,6 +102,7 @@ ApiControlePerifericos.Infrastructure/
 ├── Context/AppDbContext.cs        # IdentityDbContext<ApplicationUser>
 ├── Repositories/                  # Repository<T>, UnitOfWork, repos + decorators de cache
 ├── Caching/                       # CacheGrupos, CacheTokens, ProdutoCacheInvalidator
+├── Extensions/                    # AddInfrastructure (DI da camada) + AddPersistence (DbContext)
 ├── Migrations/
 ├── Interfaces/ITokenService.cs
 ├── Services/TokenService.cs
@@ -111,11 +113,12 @@ ApiControlePerifericos/            # WebApi (startup)
 ├── Filters/                       # ApiExceptionFilter
 ├── Auth/                          # AuthCookies, CsrfValidationMiddleware
 ├── Logging/                       # CustomLoggerProvider → Log.txt
-├── Program.cs                     # Composition root (DI + pipeline)
+├── Program.cs                     # Composition root (auth, CORS, pipeline; DI vem das camadas)
 └── appsettings.json
 
 ApiControlePerifericos.Tests/      # xUnit + Moq
 ├── Controllers/
+├── Extensions/
 ├── Repositories/
 └── Services/
 ```
