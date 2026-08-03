@@ -40,7 +40,8 @@ Cloud Run e TiDB escalam a zero quando ociosos e religam sozinhos no acesso
    > O TiDB Cloud exige TLS — o `SslMode=Required` cuida disso. Se a conexao falhar
    > por validacao de certificado, usar `SslMode=VerifyFull` apontando o CA do sistema.
 
-O banco e MySQL-compativel; o `Program.cs` fixa a versao do servidor em MySQL 8.0.x.
+O banco e MySQL-compativel; o `PersistenceExtensions` (Infrastructure) fixa a versao
+do servidor em MySQL 8.0.x.
 As migrations sao aplicadas automaticamente no primeiro boot da API
 (`Database.MigrateAsync()`), entao o banco pode comecar vazio.
 

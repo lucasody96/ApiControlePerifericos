@@ -1,19 +1,14 @@
 using ApiControlePerifericos.Auth;
-using ApiControlePerifericos.Caching;
 using ApiControlePerifericos.Context;
 using ApiControlePerifericos.DTOs.Mappings;
 using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Filters;
-using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Logging;
 using ApiControlePerifericos.Models.Identity;
-using ApiControlePerifericos.Repositories;
-using ApiControlePerifericos.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -179,34 +174,10 @@ builder.Services.AddCors(options =>
               .WithExposedHeaders("X-Pagination"));
 });
 
-// Provider e connection string ficam na Infrastructure (Extensions/PersistenceExtensions.cs).
-builder.Services.AddPersistence(builder.Configuration);
-
-// Cache em memória (issue #117): decorators sobre os repositórios de Produto e
-// Colaborador servem leituras do IMemoryCache e invalidam por grupo na escrita.
-// CacheTokens e o invalidador são singletons (o estado de invalidação é global).
-builder.Services.AddMemoryCache();
-builder.Services.AddSingleton<CacheTokens>();
-builder.Services.AddSingleton<IProdutoCacheInvalidator, ProdutoCacheInvalidator>();
-
-// Repositório concreto + decorator de cache. O UnitOfWork recebe as interfaces
-// (já decoradas) via DI, então toda leitura passa pelo cache.
-builder.Services.AddScoped<ProdutoRepository>();
-builder.Services.AddScoped<IProdutoRepository>(sp => new CachedProdutoRepository(
-    sp.GetRequiredService<ProdutoRepository>(),
-    sp.GetRequiredService<IMemoryCache>(),
-    sp.GetRequiredService<CacheTokens>()));
-
-builder.Services.AddScoped<ColaboradorRepository>();
-builder.Services.AddScoped<IColaboradorRepository>(sp => new CachedColaboradorRepository(
-    sp.GetRequiredService<ColaboradorRepository>(),
-    sp.GetRequiredService<IMemoryCache>(),
-    sp.GetRequiredService<CacheTokens>()));
-
-builder.Services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IEstoqueService, EstoqueService>();
+// Banco, cache e repositórios ficam na Infrastructure (Extensions/InfrastructureExtensions.cs);
+// os serviços de aplicação, na Application (Extensions/ApplicationExtensions.cs).
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
 
 builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderConfiguration
 {
