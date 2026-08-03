@@ -2,6 +2,7 @@ using ApiControlePerifericos.Auth;
 using ApiControlePerifericos.Caching;
 using ApiControlePerifericos.Context;
 using ApiControlePerifericos.DTOs.Mappings;
+using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Filters;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Logging;
@@ -178,15 +179,8 @@ builder.Services.AddCors(options =>
               .WithExposedHeaders("X-Pagination"));
 });
 
-var mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// TiDB Cloud e MySQL-compativel e reporta o protocolo MySQL 8.x. Fixamos a versao
-// (em vez de ServerVersion.AutoDetect) para nao depender de uma conexao no startup
-// so para detecta-la e evitar atrito com a string de versao propria do TiDB.
-var serverVersion = new MySqlServerVersion(new Version(8, 0, 11));
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(mySqlConnection, serverVersion));
+// Provider e connection string ficam na Infrastructure (Extensions/PersistenceExtensions.cs).
+builder.Services.AddPersistence(builder.Configuration);
 
 // Cache em memória (issue #117): decorators sobre os repositórios de Produto e
 // Colaborador servem leituras do IMemoryCache e invalidam por grupo na escrita.
