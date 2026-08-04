@@ -126,7 +126,7 @@ namespace ApiControlePerifericos.Controllers
             EscreverCookiesDeAutenticacao(
                 new JwtSecurityTokenHandler().WriteToken(token), refreshToken, refreshTokenValidityInMinutes);
 
-            return Ok(new { username = user.UserName, roles = userRoles });
+            return Ok(new { username = user.UserName, roles = userRoles, ehSuperAdmin = EhSuperAdmin(user.UserName) });
         }
 
         [HttpPost]
@@ -273,7 +273,7 @@ namespace ApiControlePerifericos.Controllers
             var username = User.Identity!.Name;
             var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
 
-            return Ok(new { username, roles });
+            return Ok(new { username, roles, ehSuperAdmin = EhSuperAdmin(username) });
         }
 
         [HttpPost]
