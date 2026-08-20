@@ -95,8 +95,9 @@ Lista as pessoas que retiram itens. São elas que aparecem ao registrar uma **sa
 **Consultar o histórico:**
 
 - Por padrão, a tela mostra todas as movimentações, da mais recente para a mais antiga, com paginação.
-- **Filtrar por período** — preencha **De** e **Até** e clique em **Filtrar** (use **Limpar** para voltar).
-- **Histórico de um produto** ou **Histórico de um colaborador** — escolha no campo correspondente para ver tudo daquele item específico. Clique no "x" da etiqueta azul para voltar à lista completa.
+- **Filtrar por produto** ou **por colaborador** — escolha no campo correspondente. A etiqueta azul mostra o que está ativo; clique no "x" dela para remover aquele filtro.
+- **Filtrar por período** — preencha **De** e **Até** e clique em **Filtrar**.
+- Os filtros **se combinam**: dá para pedir um colaborador dentro de um período (por exemplo, tudo que o João retirou em julho), um produto dentro de um período, ou produto e colaborador ao mesmo tempo. O botão **Limpar** zera todos de uma vez.
 
 Cada linha mostra **Data**, **Tipo**, **Produto**, **Quantidade**, **Colaborador** (quando houver) e **Registrado por** (quem fez o lançamento — é o seu usuário).
 
@@ -142,7 +143,10 @@ Gestão de quem acessa o sistema.
 → Produtos → ative **Só abaixo do mínimo**.
 
 **Quero ver tudo que uma pessoa pegou**
-→ Movimentações → campo **Histórico de um colaborador** → escolha a pessoa.
+→ Movimentações → campo **Colaborador** → escolha a pessoa.
+
+**Quero ver o que uma pessoa pegou num período**
+→ Movimentações → campo **Colaborador** → escolha a pessoa, preencha **De** e **Até** e clique em **Filtrar**.
 
 **Cadastrar uma pessoa nova que vai retirar itens**
 → Colaboradores → **Novo colaborador**.
