@@ -27,7 +27,9 @@ Cada pessoa entra com **usuário e senha** e enxerga só o que o seu perfil perm
 
 Se aparecer *"Usuário ou senha inválidos"*, confira os dados e tente de novo. Se você não tem usuário, peça a um administrador para criar o seu.
 
-> 💡 **Esqueceu a senha?** Não há "esqueci minha senha" automático. Peça a um administrador para **resetar** a sua senha (ele consegue gerar uma nova para você).
+> ⚠️ **Errou a senha várias vezes?** Por segurança, o sistema bloqueia novas tentativas depois de **5 erros em menos de um minuto** e mostra *"Muitas tentativas. Tente novamente em alguns instantes."* Espere cerca de um minuto e tente de novo — não é preciso avisar ninguém.
+
+> 💡 **Esqueceu a senha?** Não há "esqueci minha senha" automático. Peça a um administrador para **resetar** a sua senha: ele cadastra uma nova senha para você e informa qual é. Depois de entrar, troque-a em **Minha conta**.
 
 ### A barra de navegação
 
@@ -41,8 +43,10 @@ Depois de entrar, no topo da tela ficam os atalhos: **Início**, **Produtos**, *
 
 Lista todos os periféricos com **Saldo atual**, **Estoque mínimo** e a **Situação**:
 
-- **OK** — saldo acima do mínimo.
-- **Abaixo do mínimo** (faixa amarela / etiqueta de alerta) — saldo igual ou abaixo do mínimo, hora de repor.
+- **OK** — saldo **igual ou acima** do mínimo.
+- **Abaixo do mínimo** (faixa amarela / etiqueta de alerta) — saldo **menor que** o mínimo, hora de repor.
+
+> O estoque mínimo é o último saldo ainda considerado aceitável, não o primeiro que gera alerta. Com mínimo 5: saldo 5 aparece como **OK**; saldo 4 aparece como **Abaixo do mínimo**.
 
 O que dá para fazer aqui:
 
@@ -56,7 +60,7 @@ O que dá para fazer aqui:
 - **Editar** *(administradores)* — ícone de lápis na linha do produto.
 - **Excluir** *(apenas super administradores)* — ícone de lixeira. Pede confirmação; **não dá para desfazer**.
 
-> ⚠️ **Importante:** o saldo do produto **não** é alterado direto na edição do dia a dia. Para somar ou subtrair estoque, use **Movimentações** (entrada/saída/ajuste). A edição do produto serve para corrigir a descrição ou ajustar o estoque mínimo.
+> ⚠️ **Importante:** a tela de edição permite alterar o **Saldo atual**, mas **não é assim que se acerta estoque**. Saldo mudado na edição não deixa rastro de quem mudou, quando nem por quê. Para somar ou subtrair estoque, use sempre **Movimentações** (entrada/saída/ajuste); reserve a edição para corrigir a descrição ou o estoque mínimo.
 
 ### 3.2. Colaboradores
 
@@ -86,10 +90,12 @@ Lista as pessoas que retiram itens. São elas que aparecem ao registrar uma **sa
 
 > ⚠️ Em saída e ajuste o sistema **valida o saldo**: se não houver estoque suficiente, a operação é recusada com uma mensagem de erro. Confira o saldo antes.
 
+> ⚠️ Movimentação registrada **não tem botão de editar nem de excluir**, nem para super administradores. A correção existe, mas é feita direto na API por quem cuida tecnicamente do sistema. Por isso, confira os dados antes de clicar em **Registrar**.
+
 **Consultar o histórico:**
 
 - Por padrão, a tela mostra todas as movimentações, da mais recente para a mais antiga, com paginação.
-- **Filtrar por período** — preencha **De** e **Até** e clique em **Filtrar** (use **Limpar** para voltar). 
+- **Filtrar por período** — preencha **De** e **Até** e clique em **Filtrar** (use **Limpar** para voltar).
 - **Histórico de um produto** ou **Histórico de um colaborador** — escolha no campo correspondente para ver tudo daquele item específico. Clique no "x" da etiqueta azul para voltar à lista completa.
 
 Cada linha mostra **Data**, **Tipo**, **Produto**, **Quantidade**, **Colaborador** (quando houver) e **Registrado por** (quem fez o lançamento — é o seu usuário).
@@ -114,8 +120,10 @@ Gestão de quem acessa o sistema.
 
 - **Buscar por usuário ou e-mail** — campo de busca no topo.
 - **Novo usuário** — cadastra uma pessoa com usuário, e-mail e senha (a senha segue as mesmas regras acima). Por padrão o novo usuário entra com perfil comum.
-- **Gerenciar roles** (ícone de engrenagem/escudo) — define os perfis do usuário marcando as caixas. *Alterar perfis é restrito a super administradores.*
-- **Resetar senha** (ícone de cadeado) — gera uma nova senha para a pessoa (útil quando alguém esqueceu a senha). *Um administrador comum não pode resetar a senha de um super administrador.*
+- **Gerenciar roles** (ícone de engrenagem/escudo) — define os perfis do usuário marcando as caixas. Os perfis disponíveis aqui são **usuário comum** e **administrador**. *Alterar perfis é restrito a super administradores.*
+- **Resetar senha** (ícone de cadeado) — abre um formulário onde você **cadastra a nova senha** da pessoa (útil quando alguém esqueceu a senha) e depois a informa a ela. A senha segue as mesmas regras de complexidade. *Um administrador comum não pode resetar a senha de um super administrador.*
+
+> ℹ️ **Super administrador não é um perfil que se concede por aqui.** Ele é definido na configuração do servidor, por quem cuida tecnicamente do sistema. Nenhuma tela promove alguém a super administrador.
 
 ---
 
@@ -159,21 +167,29 @@ Gestão de quem acessa o sistema.
 
 > Se você clicar em algo que seu perfil não permite, o sistema bloqueia a ação ou nem mostra o botão. Precisa de mais acesso? Fale com um administrador.
 
+> **Sobre o super administrador:** os dois primeiros perfis são atribuídos na tela de **Usuários**. O super administrador, não — a lista de quem tem esse privilégio fica na configuração do servidor e só muda com a ajuda de quem cuida tecnicamente do sistema.
+
 ---
 
 ## 6. Dúvidas comuns
 
 **O saldo de um produto ficou errado. Como corrijo?**
-Registre uma **Entrada** (para somar) ou um **Ajuste** (para subtrair) com a diferença. Assim o histórico fica registrado. Evite "consertar" pela edição do produto.
+Registre uma **Entrada** (para somar) ou um **Ajuste** (para subtrair) com a diferença. Assim o histórico fica registrado. Evite "consertar" pela edição do produto: o sistema até deixa, mas depois ninguém consegue saber o que aconteceu.
+
+**Um produto está com saldo igual ao estoque mínimo e não apareceu no alerta. Por quê?**
+O alerta só acende quando o saldo fica **abaixo** do mínimo; saldo igual ao mínimo ainda é considerado **OK**. Se quiser ser avisado antes, aumente o estoque mínimo do produto.
 
 **Registrei uma movimentação errada. Como apago?**
-A correção/exclusão de movimentações é restrita a super administradores. Avise um deles com os detalhes (produto, data, quantidade).
+Não dá para apagar pelo sistema — a tela de Movimentações não tem edição nem exclusão. Procure quem cuida tecnicamente do sistema, com os detalhes (produto, data, quantidade); a correção é feita direto na API e é restrita a super administradores.
+
+**O login travou com "Muitas tentativas".**
+É a proteção contra tentativas de adivinhar senha: são 5 tentativas por minuto. Espere cerca de um minuto e tente de novo. Se você realmente não lembra a senha, peça a um administrador para resetá-la.
 
 **O sistema demorou alguns segundos para abrir.**
 Normal de vez em quando: quando fica um tempo sem uso, ele "hiberna" e religa sozinho no primeiro acesso (leva poucos segundos).
 
 **Fui desconectado sozinho.**
-Por segurança, a sessão expira após um tempo. Basta entrar de novo.
+Por segurança, a sessão expira após um tempo sem uso. Basta entrar de novo.
 
 ---
 
