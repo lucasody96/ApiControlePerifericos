@@ -310,5 +310,97 @@ namespace ApiControlePerifericos.Tests.Repositories
             // Assert
             Assert.Equal(2, pagina.TotalItemCount);
         }
+
+        [Fact]
+        public async Task GetRelatorioAsync_ComFiltroColaboradorId_DeveFiltrarPorIdExato()
+        {
+            // Arrange — dois colaboradores de nomes parecidos: o filtro por texto pegaria
+            // os dois ("Ana" está contido em "Ana Paula"), o filtro por id só um.
+            var dbName = Guid.NewGuid().ToString();
+            int anaId;
+            using (var contexto = CriarContexto(dbName))
+            {
+                var produto = new Produto { Descricao = "Mouse", SaldoAtual = 10 };
+                var ana = new Colaborador { Nome = "Ana" };
+                var anaPaula = new Colaborador { Nome = "Ana Paula" };
+                contexto.AddRange(produto, ana, anaPaula);
+                await contexto.SaveChangesAsync();
+                anaId = ana.ColaboradorId;
+
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = produto.ProdutoId, ColaboradorId = ana.ColaboradorId, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'S', Quantidade = 2, ProdutoId = produto.ProdutoId, ColaboradorId = anaPaula.ColaboradorId, DataMovimentacao = BaseData.AddDays(2) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetRelatorioAsync(new MovimentacoesParameters { ColaboradorId = anaId });
+
+            // Assert — só a movimentação da Ana
+            Assert.Single(pagina);
+            Assert.Equal("Ana", pagina.First().Colaborador!.Nome);
+        }
+
+        [Fact]
+        public async Task GetRelatorioAsync_ComColaboradorIdEPeriodo_DeveCombinarOsFiltros()
+        {
+            // Arrange — três saídas do mesmo colaborador, uma delas dentro do período
+            var dbName = Guid.NewGuid().ToString();
+            int colaboradorId;
+            using (var contexto = CriarContexto(dbName))
+            {
+                var produto = new Produto { Descricao = "Mouse", SaldoAtual = 10 };
+                var joao = new Colaborador { Nome = "João" };
+                contexto.AddRange(produto, joao);
+                await contexto.SaveChangesAsync();
+                colaboradorId = joao.ColaboradorId;
+
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = produto.ProdutoId, ColaboradorId = joao.ColaboradorId, DataMovimentacao = new DateTime(2026, 6, 30) },
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = produto.ProdutoId, ColaboradorId = joao.ColaboradorId, DataMovimentacao = new DateTime(2026, 7, 15) },
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = produto.ProdutoId, ColaboradorId = joao.ColaboradorId, DataMovimentacao = new DateTime(2026, 8, 1) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act — "o que o João pegou em julho"
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetRelatorioAsync(new MovimentacoesParameters
+            {
+                ColaboradorId = colaboradorId,
+                DataInicio = new DateTime(2026, 7, 1),
+                DataFim = new DateTime(2026, 7, 31)
+            });
+
+            // Assert — o período recorta o histórico do colaborador
+            Assert.Single(pagina);
+            Assert.Equal(new DateTime(2026, 7, 15), pagina.First().DataMovimentacao);
+        }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComFiltroProdutoId_DeveFiltrar()
+        {
+            // Arrange — movimentações de dois produtos distintos
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'E', Quantidade = 1, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 2, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(2) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 9, ProdutoId = 2, DataMovimentacao = BaseData.AddDays(3) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters { ProdutoId = 1 });
+
+            // Assert
+            Assert.Equal(2, pagina.TotalItemCount);
+            Assert.All(pagina, m => Assert.Equal(1, m.ProdutoId));
+        }
     }
 }

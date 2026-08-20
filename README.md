@@ -278,7 +278,7 @@ Todos os endpoints `/pagination` aceitam:
 
 > Atenção: `pageSize` tem default **e** máximo iguais a 50 — chamar `/pagination` sem `pageSize` traz 50 itens.
 
-`MovimentacoesParameters` aceita ainda os filtros `DataInicio`, `DataFim`, `DescricaoProduto` e `NomeColaborador`; `UsuariosParameters` aceita `Busca`.
+`MovimentacoesParameters` aceita ainda os filtros `DataInicio`, `DataFim`, `DescricaoProduto`, `NomeColaborador`, `ProdutoId` e `ColaboradorId` (os por id são exatos; os por texto usam `Contains`), todos combináveis entre si; `UsuariosParameters` aceita `Busca`.
 
 A resposta inclui o header `X-Pagination` (exposto ao frontend via CORS) com metadados:
 
