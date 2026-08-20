@@ -68,6 +68,14 @@ namespace ApiControlePerifericos.Repositories
             if (!string.IsNullOrWhiteSpace(parameters.NomeColaborador))
                 query = query.Where(m => m.Colaborador!.Nome!.Contains(parameters.NomeColaborador));
 
+            // Os filtros por id convivem com os de texto: quem manda os dois recebe a
+            // interseção. Aqui a comparação é exata, sem o Contains.
+            if (parameters.ProdutoId.HasValue)
+                query = query.Where(m => m.ProdutoId == parameters.ProdutoId.Value);
+
+            if (parameters.ColaboradorId.HasValue)
+                query = query.Where(m => m.ColaboradorId == parameters.ColaboradorId.Value);
+
             return query;
         }
 
