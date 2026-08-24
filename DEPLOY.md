@@ -57,7 +57,7 @@ Pre-requisito: instalar o [Google Cloud CLI (`gcloud`)](https://cloud.google.com
    ```bash
    gcloud run deploy api-controle-perifericos \
      --source . \
-     --region southamerica-east1 \
+     --region us-east1 \
      --allow-unauthenticated \
      --set-env-vars "ASPNETCORE_ENVIRONMENT=Production" \
      --set-env-vars "ConnectionStrings__DefaultConnection=Server=...;Port=...;Database=defaultdb;User=avnadmin;Password=...;SslMode=Required;" \
@@ -79,7 +79,7 @@ Pre-requisito: instalar o [Google Cloud CLI (`gcloud`)](https://cloud.google.com
 3. Depois de saber a URL final, **reaplique** `JWT__ValidIssuer` e `JWT__ValidAudience` com ela (e o CORS no Passo 4). Para atualizar so as envs, sem novo build:
 
    ```bash
-   gcloud run services update api-controle-perifericos --region southamerica-east1 \
+   gcloud run services update api-controle-perifericos --region us-east1 \
      --update-env-vars "JWT__ValidIssuer=https://SUA-API.run.app,JWT__ValidAudience=https://SUA-API.run.app"
    ```
 
@@ -109,7 +109,7 @@ Pre-requisito: instalar o [Google Cloud CLI (`gcloud`)](https://cloud.google.com
 Com a URL do Vercel em maos, liberar o CORS na API e reapontar o JWT, e atualizar as envs do Cloud Run:
 
 ```bash
-gcloud run services update api-controle-perifericos --region southamerica-east1 \
+gcloud run services update api-controle-perifericos --region us-east1 \
   --update-env-vars "Cors__AllowedOrigins__0=https://controle-perifericos.vercel.app"
 ```
 
