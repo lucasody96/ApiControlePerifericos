@@ -20,6 +20,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
+	  <!-- O MANUAL.md vive na raiz do repo (é lido no GitHub também). Copiado para a saída,
+       ele acompanha o publish e entra na imagem Docker — sem isso o assistente sobe sem fonte. -->
+	 <Content Include="..\MANUAL.md" Link="MANUAL.md"
+			  CopyToOutputDirectory="PreserveNewest"
+			  CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

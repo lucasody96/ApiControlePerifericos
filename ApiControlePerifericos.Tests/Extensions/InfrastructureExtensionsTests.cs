@@ -2,8 +2,10 @@ using ApiControlePerifericos.Caching;
 using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Repositories;
+using ApiControlePerifericos.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ApiControlePerifericos.Tests.Extensions
 {
@@ -17,6 +19,10 @@ namespace ApiControlePerifericos.Tests.Extensions
         private const string ConnectionStringFake =
             "Server=localhost;Database=perifericos_teste;User=root;Password=senha;";
 
+        // Chave do assistente (issue #40): nenhuma chamada é feita, mas com ela presente o
+        // AddInfrastructure registra o cliente real em vez do assistente desligado.
+        private const string ApiKeyFake = "sk-ant-chave-de-teste";
+
         private static ServiceProvider ConstruirProvider()
         {
             var configuration = new ConfigurationBuilder()
@@ -24,13 +30,17 @@ namespace ApiControlePerifericos.Tests.Extensions
                 [
                     new KeyValuePair<string, string?>(
                         $"ConnectionStrings:{PersistenceExtensions.NomeConnectionString}",
-                        ConnectionStringFake)
+                        ConnectionStringFake),
+                    new KeyValuePair<string, string?>(
+                        InfrastructureExtensions.ChaveApiKeyAnthropic, ApiKeyFake)
                 ])
                 .Build();
 
             var services = new ServiceCollection();
-            // O TokenService recebe IConfiguration — na app quem registra é o host.
+            // O TokenService recebe IConfiguration e o AnthropicAssistenteIA recebe ILogger —
+            // na app quem registra os dois é o host.
             services.AddSingleton<IConfiguration>(configuration);
+            services.AddLogging();
             services.AddInfrastructure(configuration);
 
             // validateScopes: reprova scoped resolvido a partir do provider raiz.
@@ -110,6 +120,53 @@ namespace ApiControlePerifericos.Tests.Extensions
             // Assert
             Assert.IsType<CachedProdutoRepository>(unitOfWork.ProdutoRepository);
             Assert.IsType<CachedColaboradorRepository>(unitOfWork.ColaboradorRepository);
+        }
+
+        [Fact]
+        public void AddInfrastructure_ComChaveDaAnthropic_DeveRegistrarOClienteReal()
+        {
+            using var provider = ConstruirProvider();
+
+            using var escopo = provider.CreateScope();
+
+            Assert.IsType<AnthropicAssistenteIA>(escopo.ServiceProvider.GetRequiredService<IAssistenteIA>());
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task AddInfrastructure_SemChaveDaAnthropic_DeveDesligarSoOAssistente(string? apiKey)
+        {
+            // Arrange — a chave serve a um endpoint só; derrubar o startup por causa dela
+            // tiraria do ar produtos, movimentações e login junto.
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(
+                [
+                    new KeyValuePair<string, string?>(
+                        $"ConnectionStrings:{PersistenceExtensions.NomeConnectionString}",
+                        ConnectionStringFake),
+                    new KeyValuePair<string, string?>(
+                        InfrastructureExtensions.ChaveApiKeyAnthropic, apiKey)
+                ])
+                .Build();
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(configuration);
+            services.AddInfrastructure(configuration);
+
+            using var provider = services.BuildServiceProvider(validateScopes: true);
+            using var escopo = provider.CreateScope();
+
+            // Assert — o resto da infraestrutura continua de pé...
+            Assert.NotNull(escopo.ServiceProvider.GetRequiredService<IUnitOfWork>());
+
+            // ...e a pergunta vira falha tratada, com a mensagem citando a chave a configurar.
+            var assistente = escopo.ServiceProvider.GetRequiredService<IAssistenteIA>();
+            var excecao = await Assert.ThrowsAsync<AssistenteIAException>(
+                () => assistente.ResponderAsync("instrucoes", "manual", "pergunta"));
+
+            Assert.Contains(InfrastructureExtensions.ChaveApiKeyAnthropic, excecao.Message);
         }
     }
 }

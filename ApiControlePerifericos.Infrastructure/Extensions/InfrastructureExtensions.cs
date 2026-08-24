@@ -1,3 +1,4 @@
+using Anthropic;
 using ApiControlePerifericos.Caching;
 using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Repositories;
@@ -16,6 +17,12 @@ namespace ApiControlePerifericos.Extensions
     /// </summary>
     public static class InfrastructureExtensions
     {
+        /// <summary>
+        /// Chave da API da Anthropic esperada na configuracao. Publica porque os testes
+        /// verificam que a mensagem de erro cita a chave que o operador precisa corrigir.
+        /// </summary>
+        public const string ChaveApiKeyAnthropic = "Anthropic:ApiKey";
+
         public static IServiceCollection AddInfrastructure(
             this IServiceCollection services,
             IConfiguration configuration)
@@ -48,6 +55,26 @@ namespace ApiControlePerifericos.Extensions
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             services.AddScoped<ITokenService, TokenService>();
+
+            // Assistente de dúvidas (issue #40). A chave nunca vai para o appsettings: user-secrets
+            // em desenvolvimento, variável de ambiente Anthropic__ApiKey no Cloud Run.
+            var anthropicApiKey = configuration[ChaveApiKeyAnthropic];
+
+            services.AddSingleton<IManualProvider, ManualProvider>();
+
+            if (string.IsNullOrWhiteSpace(anthropicApiKey))
+            {
+                // Diferente da connection string, esta chave serve a um endpoint só: derrubar o
+                // startup por causa dela tiraria do ar produtos, movimentações e login junto.
+                // A API sobe e o assistente devolve 503 até a chave ser configurada.
+                services.AddSingleton<IAssistenteIA>(new AssistenteIAIndisponivel(ChaveApiKeyAnthropic));
+            }
+            else
+            {
+                // O cliente é thread-safe e caro de construir (mantém o HttpClient): singleton.
+                services.AddSingleton(new AnthropicClient { ApiKey = anthropicApiKey });
+                services.AddScoped<IAssistenteIA, AnthropicAssistenteIA>();
+            }
 
             return services;
         }
