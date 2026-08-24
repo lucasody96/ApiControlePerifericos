@@ -66,8 +66,12 @@ Pre-requisito: instalar o [Google Cloud CLI (`gcloud`)](https://cloud.google.com
      --set-env-vars "JWT__ValidAudience=https://SUA-API.run.app" \
      --set-env-vars "Seed__AdminUsers__0__UserName=lucas.ody" \
      --set-env-vars "Seed__AdminUsers__0__Email=lucas@exemplo.com" \
-     --set-env-vars "Seed__AdminUsers__0__Password=SENHA_FORTE_DO_ADMIN"
+     --set-env-vars "Seed__AdminUsers__0__Password=SENHA_FORTE_DO_ADMIN" \
+     --set-env-vars "Anthropic__ApiKey=COLE_A_CHAVE_DA_ANTHROPIC"
    ```
+
+   > Sem `Anthropic__ApiKey` a API sobe normalmente, mas o assistente responde `503` em
+   > toda pergunta — a chave serve so a esse endpoint e nao derruba o resto da aplicacao.
 
    > Na primeira vez o `gcloud` pergunta se pode criar o repositorio no Artifact Registry e habilitar APIs — aceite.
    > A URL publica (`https://SUA-API.run.app`) sai no fim do deploy. Anote-a.
@@ -126,6 +130,7 @@ Pronto — acessar a URL do Vercel e logar com o admin do seed.
 | `Seed__AdminUsers__0__UserName`   | Usuario admin inicial                                  |
 | `Seed__AdminUsers__0__Email`      | Email do admin                                         |
 | `Seed__AdminUsers__0__Password`   | Senha forte — **segredo**                              |
+| `Anthropic__ApiKey`               | Chave da API da Anthropic, usada pelo assistente — **segredo** |
 
 > O ASP.NET converte `__` (duplo underscore) em `:` na configuracao. Nenhum segredo vai para o Git — tudo fica nas envs do Cloud Run.
 
@@ -150,4 +155,8 @@ openssl rand -base64 48
 - **Cold start**: o Cloud Run escala a zero quando ocioso; o primeiro request apos um periodo acorda o container (alguns segundos).
 - **Migrations no startup**: aplicadas automaticamente. Se uma migration falhar, o container nao sobe — checar os logs no Cloud Run.
 - **Hardening futuro** (ja anotado): rate limiting no login e migracao do token JWT de `localStorage` para cookie httpOnly.
+- **Editar o `MANUAL.md` agora exige deploy**: o assistente (`POST /api/assistente/perguntar`)
+  responde com base no manual, que entra na imagem como `Content` do projeto WebApi e e lido
+  uma unica vez no startup. Corrigir o manual no GitHub **nao** muda a resposta do assistente
+  em producao ate rodar `gcloud run deploy` de novo.
 - **Log.txt**: o logger em arquivo escreve no filesystem efemero do container (some a cada deploy/restart). Para producao seria melhor logar no stdout (capturado pelo Cloud Logging) — melhoria futura.

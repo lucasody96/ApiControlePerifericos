@@ -18,6 +18,11 @@ COPY ApiControlePerifericos/ ApiControlePerifericos/
 COPY ApiControlePerifericos.Domain/ ApiControlePerifericos.Domain/
 COPY ApiControlePerifericos.Application/ ApiControlePerifericos.Application/
 COPY ApiControlePerifericos.Infrastructure/ ApiControlePerifericos.Infrastructure/
+
+# O MANUAL.md e a fonte unica do assistente e e referenciado como Content pelo csproj
+# do WebApi (..\MANUAL.md). Sem esta copia o publish falha por arquivo ausente.
+COPY MANUAL.md .
+
 RUN dotnet publish "ApiControlePerifericos/ApiControlePerifericos.csproj" \
     -c Release -o /app/publish /p:UseAppHost=false
 

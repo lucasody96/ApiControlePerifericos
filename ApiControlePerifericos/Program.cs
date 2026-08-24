@@ -3,12 +3,12 @@ using ApiControlePerifericos.Context;
 using ApiControlePerifericos.DTOs.Mappings;
 using ApiControlePerifericos.Extensions;
 using ApiControlePerifericos.Filters;
+using ApiControlePerifericos.Interfaces;
 using ApiControlePerifericos.Logging;
 using ApiControlePerifericos.Models.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -123,6 +123,12 @@ var loginPermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:Login:
 var loginWindowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:Login:WindowSeconds") ?? 60;
 var loginQueueLimit = builder.Configuration.GetValue<int?>("RateLimiting:Login:QueueLimit") ?? 0;
 
+// Assistente de IA: cada pergunta custa uma chamada paga à API externa, então o limite é
+// por usuário (e não por IP, como o login) — o custo segue quem pergunta.
+const string AssistenteRateLimitPolicy = "assistente";
+var assistentePermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:Assistente:PermitLimit") ?? 10;
+var assistenteWindowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:Assistente:WindowSeconds") ?? 60;
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -138,6 +144,21 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = loginPermitLimit,
                 Window = TimeSpan.FromSeconds(loginWindowSeconds),
                 QueueLimit = loginQueueLimit,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
+    options.AddPolicy(AssistenteRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            // O endpoint exige autenticação; o fallback por IP só cobre o caso de o
+            // middleware de autenticação ainda não ter resolvido o usuário.
+            partitionKey: httpContext.User.Identity?.Name
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = assistentePermitLimit,
+                Window = TimeSpan.FromSeconds(assistenteWindowSeconds),
+                QueueLimit = 0,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }));
 
@@ -250,6 +271,10 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Carrega o manual já no startup: se o arquivo não veio na imagem, é melhor a aplicação
+// não subir do que descobrir isso na primeira pergunta de um usuário.
+app.Services.GetRequiredService<IManualProvider>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -269,10 +294,6 @@ forwardedOptions.KnownIPNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
-// Depois de UseForwardedHeaders para que o particionamento por IP use o endereço real
-// do cliente (X-Forwarded-For), não o do proxy do Cloud Run.
-app.UseRateLimiter();
-
 // Em producao (Cloud Run) o container escuta apenas HTTP; o redirect para HTTPS
 // e responsabilidade do proxy. Manter o redirect aqui causaria warning/loop.
 if (!app.Environment.IsProduction())
@@ -283,6 +304,12 @@ if (!app.Environment.IsProduction())
 app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
+
+// Depois de UseAuthentication para a policy do assistente conseguir particionar por
+// usuário (HttpContext.User já preenchido), e depois de UseCors para o preflight OPTIONS
+// não consumir cota. O login continua particionando por IP, e o UseForwardedHeaders
+// segue mais acima no pipeline, então o endereço real do cliente continua valendo.
+app.UseRateLimiter();
 
 // Valida o token anti-CSRF (double-submit) nas requisições que alteram estado.
 // Depois do CORS (deixa o preflight OPTIONS passar) e antes da autorização.

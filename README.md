@@ -22,6 +22,7 @@ O sistema está **em produção**, hospedado gratuitamente:
 | Microsoft.Extensions.Caching.Memory | 10.0.0 | Cache em memória (decorator) |
 | Scalar.AspNetCore | 2.14.14 | UI de documentação da API |
 | Newtonsoft.Json | 13.0.4 | Serialização JSON |
+| Anthropic (SDK .NET) | 12.42.0 | Assistente de dúvidas sobre o manual (modelo `claude-sonnet-5`) |
 | xUnit + Moq | — | Testes unitários |
 
 **Frontend:** SPA em React + Vite, mantida em **repositório separado** e consumida por esta API via CORS.
@@ -48,8 +49,8 @@ ApiControlePerifericos.Domain                              → (nenhuma)
 ```
 
 - **Domain** — entidades (`Models/`), interfaces de repositório (`IRepository<T>`, `IUnitOfWork`, repos especializados) e a `Pagination/`.
-- **Application** — casos de uso e contratos: `EstoqueService` + `IEstoqueService`, todos os DTOs e o `MappingProfile` (AutoMapper).
-- **Infrastructure** — detalhes técnicos: `AppDbContext`, repositórios (inclusive os decorators de cache), migrations, `TokenService` e `ApplicationUser` (Identity).
+- **Application** — casos de uso e contratos: `EstoqueService` + `IEstoqueService`, `AssistenteService` + `IAssistenteService` (com as portas `IAssistenteIA` e `IManualProvider`), todos os DTOs e o `MappingProfile` (AutoMapper).
+- **Infrastructure** — detalhes técnicos: `AppDbContext`, repositórios (inclusive os decorators de cache), migrations, `TokenService`, `ApplicationUser` (Identity) e as implementações do assistente (`AnthropicAssistenteIA`, `ManualProvider`) — o SDK da Anthropic não passa daqui.
 - **WebApi** (projeto `ApiControlePerifericos`, mantém o nome por causa do Dockerfile/deploy) — `Controllers/`, `Filters/`, `Auth/`, `Logging/` e `Program.cs` (composition root).
 
 > **Convenção de namespaces:** os namespaces foram **mantidos** como `ApiControlePerifericos.*` e não refletem a camada. O que materializa as camadas é a separação física em assemblies + a direção das referências de projeto.
@@ -87,10 +88,13 @@ ApiControlePerifericos.Domain/
 └── Pagination/                    # QueryStringParameters (base) + filtros por recurso
 
 ApiControlePerifericos.Application/
-├── Services/                      # EstoqueService, EstoqueResult
-├── Interfaces/                    # IEstoqueService, IProdutoCacheInvalidator
+├── Services/                      # EstoqueService, EstoqueResult, AssistenteService,
+│                                  #   AssistenteResult, AssistenteIAException
+├── Interfaces/                    # IEstoqueService, IProdutoCacheInvalidator,
+│                                  #   IAssistenteService, IAssistenteIA, IManualProvider
 ├── Extensions/                    # AddApplication (registro dos serviços de aplicação)
 └── DTOs/
+    ├── Assistente/                # PerguntaDTO, RespostaDTO
     ├── Estoque/                   # EntradaEstoqueRequest, SaidaEstoqueRequest, AjusteEstoqueRequest
     ├── Identity/                  # LoginRequest, RegisterRequest, ChangePasswordRequest,
     │                              #   AdminResetPasswordRequest, AtualizarRolesRequest,
@@ -105,16 +109,17 @@ ApiControlePerifericos.Infrastructure/
 ├── Extensions/                    # AddInfrastructure (DI da camada) + AddPersistence (DbContext)
 ├── Migrations/
 ├── Interfaces/ITokenService.cs
-├── Services/TokenService.cs
+├── Services/                      # TokenService, AnthropicAssistenteIA, ManualProvider
 └── Models/Identity/ApplicationUser.cs
 
 ApiControlePerifericos/            # WebApi (startup)
-├── Controllers/                   # Produtos, Colaboradores, Movimentacoes, Auth, Usuarios
+├── Controllers/                   # Produtos, Colaboradores, Movimentacoes, Auth, Usuarios, Assistente
 ├── Filters/                       # ApiExceptionFilter
 ├── Auth/                          # AuthCookies, CsrfValidationMiddleware
 ├── Logging/                       # CustomLoggerProvider → Log.txt
 ├── Program.cs                     # Composition root (auth, CORS, pipeline; DI vem das camadas)
-└── appsettings.json
+├── appsettings.json
+└── (MANUAL.md da raiz entra aqui como Content — fonte do assistente)
 
 ApiControlePerifericos.Tests/      # xUnit + Moq
 ├── Controllers/
@@ -135,7 +140,7 @@ ApiControlePerifericos.Tests/      # xUnit + Moq
 
 ### 1. Configurar segredos via User Secrets
 
-Apenas os segredos ficam em User Secrets — `ConnectionStrings:DefaultConnection`, `JWT:SecretKey` e o seed de admin:
+Apenas os segredos ficam em User Secrets — `ConnectionStrings:DefaultConnection`, `JWT:SecretKey`, o seed de admin e `Anthropic:ApiKey`:
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
@@ -143,7 +148,11 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
   --project ApiControlePerifericos
 
 dotnet user-secrets set "JWT:SecretKey" "uma-chave-secreta-bem-grande" --project ApiControlePerifericos
+
+dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..." --project ApiControlePerifericos
 ```
+
+> Sem `Anthropic:ApiKey` a API sobe normalmente e apenas o assistente fica desligado, respondendo `503` com uma mensagem que diz o que configurar. A chave serve a um endpoint só — diferente da connection string, ela não impede o startup.
 
 > Configurações JWT não-secretas (`ValidIssuer`, `ValidAudience`, `TokenValidityInMinutes`, `RefreshTokenValidityInMinutes`) e a allowlist `SuperAdmins` ficam em `appsettings.json`.
 
@@ -266,6 +275,18 @@ Não há `POST` genérico — a escrita é feita pelos três endpoints de estoqu
 | `POST` | `/api/movimentacoes/ajuste` | AdminOnly | Registra ajuste/perda (subtrai) |
 | `PUT` | `/api/movimentacoes/{id}` | SuperAdminOnly | Atualiza movimentação |
 | `DELETE` | `/api/movimentacoes/{id}` | SuperAdminOnly | Remove movimentação |
+
+### Assistente — `/api/assistente`
+
+| Método | Rota | Autorização | Descrição |
+|---|---|---|---|
+| `POST` | `/api/assistente/perguntar` | Autenticado | Responde dúvidas sobre o uso do sistema tendo o `MANUAL.md` como única fonte |
+
+Corpo: `{ "pergunta": "como registro uma saída?" }` (máx. 500 caracteres). Resposta: `{ "resposta": "..." }`.
+
+A pergunta vai para o modelo `claude-sonnet-5` com o manual inteiro no `system` marcado para *prompt caching* — instruções e manual são reaproveitados entre requisições, e só a pergunta viaja fora do prefixo cacheado. A regra fica no `AssistenteService` (Application) e a integração no `AnthropicAssistenteIA` (Infrastructure), atrás da porta `IAssistenteIA`. Falha da API externa vira `503`; pergunta vazia ou longa demais, `400`. O endpoint tem rate limit próprio (`RateLimiting:Assistente`, default 10 por minuto), particionado **por usuário**.
+
+> **Consequência operacional:** o `MANUAL.md` entra na imagem como `Content` do projeto WebApi e é lido uma única vez no startup — editar o manual passou a exigir novo deploy da API para o assistente enxergar a mudança.
 
 ### Parâmetros de paginação (query string)
 
