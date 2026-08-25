@@ -12,6 +12,7 @@ namespace ApiControlePerifericos.Services
         public AssistenteIAIndisponivel(string chaveEsperada) => _chaveEsperada = chaveEsperada;
 
         public Task<string> ResponderAsync(string instrucoes, string contextoCacheavel, string pergunta,
+                                           IReadOnlyList<FerramentaAssistente> ferramentas,
                                            CancellationToken cancellationToken = default) =>
             throw new AssistenteIAException(
                 $"O assistente esta desligado: a chave '{_chaveEsperada}' nao foi configurada. " +

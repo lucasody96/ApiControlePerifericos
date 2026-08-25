@@ -9,27 +9,37 @@ namespace ApiControlePerifericos.Tests.Services
     {
         private const string ManualFake = "# Manual\nConteudo do manual de teste.";
 
+        // Ferramenta de mentira: o serviço não a executa, apenas repassa o catálogo para a
+        // IA. O que estes testes cobrem é o repasse, não a consulta — essa é a
+        // FerramentasAssistenteTests.
+        private static readonly FerramentaAssistente FerramentaFake =
+            new("consultar_produto", "Consulta um produto.", [], (_, _) => Task.FromResult("{}"));
+
         private readonly Mock<IAssistenteIA> _ia = new();
         private readonly Mock<IManualProvider> _manual = new();
+        private readonly Mock<IFerramentasAssistente> _ferramentas = new();
         private readonly Mock<ILogger<AssistenteService>> _logger = new();
         private readonly AssistenteService _service;
 
         public AssistenteServiceTests()
         {
             _manual.Setup(m => m.ObterConteudo()).Returns(ManualFake);
+            _ferramentas.Setup(f => f.Obter()).Returns([FerramentaFake]);
 
-            _service = new AssistenteService(_ia.Object, _manual.Object, _logger.Object);
+            _service = new AssistenteService(_ia.Object, _manual.Object, _ferramentas.Object, _logger.Object);
         }
 
         // Helpers de Arrange
         private void ConfigurarResposta(string resposta) =>
-            _ia.Setup(i => i.ResponderAsync(It.IsAny<string>(), It.IsAny<string>(),
-                                            It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _ia.Setup(i => i.ResponderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                                            It.IsAny<IReadOnlyList<FerramentaAssistente>>(),
+                                            It.IsAny<CancellationToken>()))
                .ReturnsAsync(resposta);
 
         private void ConfigurarFalha() =>
-            _ia.Setup(i => i.ResponderAsync(It.IsAny<string>(), It.IsAny<string>(),
-                                            It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _ia.Setup(i => i.ResponderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                                            It.IsAny<IReadOnlyList<FerramentaAssistente>>(),
+                                            It.IsAny<CancellationToken>()))
                .ThrowsAsync(new AssistenteIAException("Falha simulada."));
 
         [Theory]
@@ -44,6 +54,8 @@ namespace ApiControlePerifericos.Tests.Services
             Assert.Equal(AssistenteResultStatus.PerguntaVazia, resultado.Status);
             // Nao gasta chamada paga na API externa por uma pergunta que nem existe.
             _ia.VerifyNoOtherCalls();
+            // Nem monta o catalogo de ferramentas, que consulta o banco.
+            _ferramentas.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -91,6 +103,41 @@ namespace ApiControlePerifericos.Tests.Services
                 It.Is<string>(instrucoes => instrucoes.Contains("manual")),
                 ManualFake,
                 "como faco login?",
+                It.IsAny<IReadOnlyList<FerramentaAssistente>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ResponderAsync_DeveEnviarOCatalogoDeFerramentas()
+        {
+            ConfigurarResposta("ok");
+
+            await _service.ResponderAsync("quantos mouses tem em estoque?");
+
+            _ia.Verify(i => i.ResponderAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.Is<IReadOnlyList<FerramentaAssistente>>(catalogo => catalogo.Single() == FerramentaFake),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Instrucoes_DevemSepararManualDeConsultaAoEstoque()
+        {
+            // O guardrail é regra de negócio: se as instruções deixarem de mandar consultar
+            // as ferramentas para dado de estoque, o assistente volta a responder saldo pelo
+            // manual — que é justamente o que a issue #48 veio corrigir.
+            ConfigurarResposta("ok");
+
+            await _service.ResponderAsync("qual o saldo do mouse?");
+
+            _ia.Verify(i => i.ResponderAsync(
+                It.Is<string>(instrucoes => instrucoes.Contains("manual")
+                                         && instrucoes.Contains("ferramentas")),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<FerramentaAssistente>>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
 
