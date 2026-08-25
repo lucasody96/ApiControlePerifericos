@@ -1,4 +1,4 @@
-using ApiControlePerifericos.Auth;
+﻿using ApiControlePerifericos.Auth;
 using ApiControlePerifericos.Controllers;
 using ApiControlePerifericos.DTOs.Identity;
 using ApiControlePerifericos.Interfaces;
@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.Extensions.Configuration.Memory;
 
 namespace ApiControlePerifericos.Tests.Controllers
 {
@@ -20,7 +19,14 @@ namespace ApiControlePerifericos.Tests.Controllers
         private readonly Mock<ITokenService> _tokenService = new();
         private readonly Mock<UserManager<ApplicationUser>> _userManager;
         private readonly Mock<RoleManager<IdentityRole>> _roleManager;
-        private readonly Mock<IConfiguration> _configuration = new();
+        // A allowlist de super admins e lida por SuperAdminAllowlist.Resolver via
+        // GetSection(...).Get<string[]>(). Get<T> e extension method: num Mock<IConfiguration>
+        // o GetSection nao configurado devolve null e o binder estoura antes da assercao
+        // (issue #44). Usamos uma IConfiguration real, no mesmo padrao de
+        // InfrastructureExtensionsTests. A raiz e mutavel pelo indexer, entao cada teste
+        // ajusta a config depois de o controller ja ter sido construido.
+        private readonly IConfigurationRoot _configuration =
+            new ConfigurationBuilder().AddInMemoryCollection().Build();
         private readonly Mock<ILogger<AuthController>> _logger = new();
         private readonly AuthController _controller;
 
@@ -38,7 +44,7 @@ namespace ApiControlePerifericos.Tests.Controllers
                 _tokenService.Object,
                 _userManager.Object,
                 _roleManager.Object,
-                _configuration.Object,
+                _configuration,
                 _logger.Object);
 
             // HttpContext padrão para que login/refresh consigam escrever os cookies
@@ -78,25 +84,36 @@ namespace ApiControlePerifericos.Tests.Controllers
                 string.Join("; ", partes);
         }
 
-        private void ConfigurarSuperAdmins(string[] userNames)
+        // Lista vazia nao equivale a "nenhum super admin": com a secao ausente o Resolver
+        // cai no default embutido (lucas.ody, admin). Testes que precisam de usuario comum
+        // populam a allowlist com outro username em vez de contar com a secao vazia.
+        private void ConfigurarSuperAdmins(params string[] userNames)
         {
-            // Get<string[]>() é extension method — não pode ser mockado diretamente.
-            // Construímos uma IConfiguration real e extraímos a seção dela.
-            var dict = userNames
-                .Select((u, i) => new KeyValuePair<string, string?>($"SuperAdmins:{i}", u))
-                .ToDictionary(k => k.Key, v => v.Value);
-
-            var realConfig = new ConfigurationBuilder()
-                .AddInMemoryCollection(dict)
-                .Build();
-
-            _configuration
-                .Setup(c => c.GetSection("SuperAdmins"))
-                .Returns(realConfig.GetSection("SuperAdmins"));
+            for (int i = 0; i < userNames.Length; i++)
+                _configuration[$"{SuperAdminAllowlist.SecaoConfiguracao}:{i}"] = userNames[i];
         }
 
         private void ConfigurarConfig(string chave, string valor) =>
-            _configuration.Setup(c => c[chave]).Returns(valor);
+            _configuration[chave] = valor;
+
+        // Login e Me respondem com objeto anonimo; a leitura por reflexao evita criar um
+        // DTO so para o teste.
+        private static T LerPropriedade<T>(OkObjectResult resposta, string nome) =>
+            (T)resposta.Value!.GetType().GetProperty(nome)!.GetValue(resposta.Value)!;
+
+        // Arrange comum dos logins bem-sucedidos.
+        private ApplicationUser ArranjarLoginValido(string userName, params string[] roles)
+        {
+            var user = new ApplicationUser { UserName = userName, Email = $"{userName}@test.com" };
+            _userManager.Setup(u => u.FindByNameAsync(userName)).ReturnsAsync(user);
+            _userManager.Setup(u => u.CheckPasswordAsync(user, "senha123")).ReturnsAsync(true);
+            _userManager.Setup(u => u.GetRolesAsync(user)).ReturnsAsync(roles.ToList());
+            _userManager.Setup(u => u.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+            _tokenService.Setup(t => t.GenerateToken(It.IsAny<List<Claim>>())).Returns(new JwtSecurityToken());
+            _tokenService.Setup(t => t.GenerateRefreshToken()).Returns("refresh-token-gerado");
+            ConfigurarConfig("JWT:RefreshTokenValidityInMinutes", "60");
+            return user;
+        }
 
         // ─── Login ────────────────────────────────────────────────────────────────
 
@@ -134,14 +151,7 @@ namespace ApiControlePerifericos.Tests.Controllers
         public async Task Login_CredenciaisValidas_DeveRetornar200ComTokenERefreshToken()
         {
             // Arrange
-            var user = new ApplicationUser { UserName = "lucas", Email = "lucas@test.com" };
-            _userManager.Setup(u => u.FindByNameAsync("lucas")).ReturnsAsync(user);
-            _userManager.Setup(u => u.CheckPasswordAsync(user, "senha123")).ReturnsAsync(true);
-            _userManager.Setup(u => u.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Admin" });
-            _userManager.Setup(u => u.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
-            _tokenService.Setup(t => t.GenerateToken(It.IsAny<List<Claim>>())).Returns(new JwtSecurityToken());
-            _tokenService.Setup(t => t.GenerateRefreshToken()).Returns("refresh-token-gerado");
-            ConfigurarConfig("JWT:RefreshTokenValidityInMinutes", "60");
+            var user = ArranjarLoginValido("lucas", "Admin");
             var model = new LoginRequest { UserName = "lucas", Password = "senha123" };
 
             // Act
@@ -149,7 +159,42 @@ namespace ApiControlePerifericos.Tests.Controllers
 
             // Assert
             var ok = Assert.IsType<OkObjectResult>(result);
-            Assert.NotNull(ok.Value);
+            Assert.Equal("lucas", LerPropriedade<string>(ok, "username"));
+            Assert.Equal(new[] { "Admin" }, LerPropriedade<IList<string>>(ok, "roles"));
+            Assert.Equal("refresh-token-gerado", user.RefreshToken);
+        }
+
+        [Fact]
+        public async Task Login_UsuarioNaAllowlist_DeveRetornarEhSuperAdminVerdadeiro()
+        {
+            // Arrange
+            ConfigurarSuperAdmins("lucas.ody");
+            ArranjarLoginValido("lucas.ody", "Admin");
+            var model = new LoginRequest { UserName = "lucas.ody", Password = "senha123" };
+
+            // Act
+            var result = await _controller.Login(model);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.True(LerPropriedade<bool>(ok, "ehSuperAdmin"));
+        }
+
+        [Fact]
+        public async Task Login_UsuarioForaDaAllowlist_DeveRetornarEhSuperAdminFalso()
+        {
+            // Arrange - allowlist explicita com outro usuario, para o default embutido
+            // (lucas.ody, admin) nao decidir o resultado no lugar da configuracao.
+            ConfigurarSuperAdmins("lucas.ody");
+            ArranjarLoginValido("usuario.comum", "User");
+            var model = new LoginRequest { UserName = "usuario.comum", Password = "senha123" };
+
+            // Act
+            var result = await _controller.Login(model);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.False(LerPropriedade<bool>(ok, "ehSuperAdmin"));
         }
 
         // ─── Register ─────────────────────────────────────────────────────────────
@@ -552,7 +597,37 @@ namespace ApiControlePerifericos.Tests.Controllers
 
             // Assert
             var ok = Assert.IsType<OkObjectResult>(result);
-            Assert.NotNull(ok.Value);
+            Assert.Equal("lucas", LerPropriedade<string>(ok, "username"));
+            Assert.Equal(new[] { "Admin" }, LerPropriedade<List<string>>(ok, "roles"));
+        }
+
+        [Fact]
+        public void Me_UsuarioNaAllowlist_DeveRetornarEhSuperAdminVerdadeiro()
+        {
+            // Arrange
+            ConfigurarUsuarioLogado("lucas.ody", ehSuperAdmin: true);
+
+            // Act
+            var result = _controller.Me();
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.True(LerPropriedade<bool>(ok, "ehSuperAdmin"));
+        }
+
+        [Fact]
+        public void Me_UsuarioForaDaAllowlist_DeveRetornarEhSuperAdminFalso()
+        {
+            // Arrange
+            ConfigurarUsuarioLogado("usuario.comum");
+            ConfigurarSuperAdmins("lucas.ody");
+
+            // Act
+            var result = _controller.Me();
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.False(LerPropriedade<bool>(ok, "ehSuperAdmin"));
         }
 
         // ─── Logout ───────────────────────────────────────────────────────────────
