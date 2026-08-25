@@ -346,5 +346,94 @@ namespace ApiControlePerifericos.Tests.Services
             // Mesma palavra que o TipoDescricao do MappingProfile mostra na tela.
             Assert.Equal("Ajuste", resultado.GetProperty("movimentacoes")[0].GetProperty("tipo").GetString());
         }
+
+        [Fact]
+        public void ConsultarMovimentacoes_DeveExporOParametroTipoComoOpcional()
+        {
+            var tipo = Ferramenta("consultar_movimentacoes").Parametros
+                                                            .Single(parametro => parametro.Nome == "tipo");
+
+            // A descrição é o que ensina o modelo: sem as três letras ali, ele chuta "saida".
+            Assert.False(tipo.Obrigatorio);
+            Assert.Contains("'E'", tipo.Descricao);
+            Assert.Contains("'S'", tipo.Descricao);
+            Assert.Contains("'A'", tipo.Descricao);
+        }
+
+        [Fact]
+        public async Task ConsultarMovimentacoes_ComTipo_DeveRepassarAoRepositorio()
+        {
+            MovimentacoesParameters? enviado = null;
+            _movimentacoes.Setup(r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()))
+                          .Callback<MovimentacoesParameters>(parametros => enviado = parametros)
+                          .ReturnsAsync(new List<Movimentacao>().ToPagedList(1, 50));
+
+            await ExecutarAsync(Ferramenta("consultar_movimentacoes"), new() { ["tipo"] = "S" });
+
+            Assert.Equal('S', enviado!.Tipo);
+        }
+
+        [Theory]
+        [InlineData("s")]
+        [InlineData("S")]
+        public async Task ConsultarMovimentacoes_ComTipoEmQualquerCaixa_DeveNormalizar(string valor)
+        {
+            MovimentacoesParameters? enviado = null;
+            _movimentacoes.Setup(r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()))
+                          .Callback<MovimentacoesParameters>(parametros => enviado = parametros)
+                          .ReturnsAsync(new List<Movimentacao>().ToPagedList(1, 50));
+
+            await ExecutarAsync(Ferramenta("consultar_movimentacoes"), new() { ["tipo"] = valor });
+
+            // O modelo escreve 's' minúsculo sem avisar; o banco grava 'S'.
+            Assert.Equal('S', enviado!.Tipo);
+        }
+
+        [Fact]
+        public async Task ConsultarMovimentacoes_SemTipo_DeveMandarNulo()
+        {
+            MovimentacoesParameters? enviado = null;
+            _movimentacoes.Setup(r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()))
+                          .Callback<MovimentacoesParameters>(parametros => enviado = parametros)
+                          .ReturnsAsync(new List<Movimentacao>().ToPagedList(1, 50));
+
+            await ExecutarAsync(Ferramenta("consultar_movimentacoes"));
+
+            Assert.Null(enviado!.Tipo);
+        }
+
+        [Theory]
+        [InlineData("X")]
+        [InlineData("saida")]
+        [InlineData("Entrada")]
+        public async Task ConsultarMovimentacoes_ComTipoInvalido_DeveDevolverErroSemConsultarOBanco(string valor)
+        {
+            var resultado = await ExecutarAsync(Ferramenta("consultar_movimentacoes"),
+                                                new() { ["tipo"] = valor });
+
+            // Tipo desconhecido devolveria lista vazia com cara de "não houve movimentação";
+            // como erro, o modelo corrige a chamada na rodada seguinte.
+            Assert.True(resultado.TryGetProperty("erro", out _));
+            _movimentacoes.Verify(r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ConsultarMovimentacoes_ComTipo_DeveResponderQuantasNoEncontrados()
+        {
+            // Três saídas no filtro, mas a página mostra uma: é o 'encontrados' que responde
+            // "quantas saídas", justamente para o modelo não contar as linhas da lista.
+            ConfigurarRelatorio(
+            [
+                Movimentacao('S', 2, "Pilha AA", "Lucas Ody"),
+                Movimentacao('S', 3, "Pilha AA", "Lucas Ody"),
+                Movimentacao('S', 5, "Pilha AA", "Lucas Ody")
+            ], pageNumber: 1, pageSize: 1);
+
+            var resultado = await ExecutarAsync(Ferramenta("consultar_movimentacoes"),
+                                                new() { ["tipo"] = "S" });
+
+            Assert.Equal(3, resultado.GetProperty("encontrados").GetInt32());
+            Assert.Equal(1, resultado.GetProperty("exibidos").GetInt32());
+        }
     }
 }

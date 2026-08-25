@@ -64,9 +64,9 @@ namespace ApiControlePerifericos.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<MovimentacaoDTO>>> Get([FromQuery] MovimentacoesParameters parameters)
         {
-            var intervaloInvalido = ValidarIntervaloDeDatas(parameters);
-            if (intervaloInvalido is not null)
-                return intervaloInvalido;
+            var filtroInvalido = ValidarFiltros(parameters);
+            if (filtroInvalido is not null)
+                return filtroInvalido;
 
             var movimentacoes = await _uof.MovimentacaoRepository.GetMovimentacoesAsync(parameters);
             return ObterMovimentacoes(movimentacoes);
@@ -76,9 +76,9 @@ namespace ApiControlePerifericos.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<IEnumerable<MovimentacaoRelatorioDTO>>> GetRelatorio([FromQuery] MovimentacoesParameters parameters)
         {
-            var intervaloInvalido = ValidarIntervaloDeDatas(parameters);
-            if (intervaloInvalido is not null)
-                return intervaloInvalido;
+            var filtroInvalido = ValidarFiltros(parameters);
+            if (filtroInvalido is not null)
+                return filtroInvalido;
 
             var movimentacoes = await _uof.MovimentacaoRepository.GetRelatorioAsync(parameters);
 
@@ -183,6 +183,26 @@ namespace ApiControlePerifericos.Controllers
         }
 
         //metodos privates
+
+        // Portão único dos filtros de /pagination e /relatorio: os dois expõem o mesmo
+        // MovimentacoesParameters, então validam a mesma coisa. Devolve a primeira falha.
+        private ActionResult? ValidarFiltros(MovimentacoesParameters parameters) =>
+            ValidarIntervaloDeDatas(parameters) ?? ValidarTipo(parameters);
+
+        // Tipo fora de 'E'/'S'/'A' devolveria lista vazia com cara de "não houve
+        // movimentação" — mesmo motivo pelo qual o intervalo invertido é rejeitado.
+        private ActionResult? ValidarTipo(MovimentacoesParameters parameters)
+        {
+            if (parameters.Tipo.HasValue && !TipoMovimentacao.EhValido(parameters.Tipo.Value))
+            {
+                _logger.LogWarning("Filtro rejeitado: tipo de movimentação '{Tipo}' inválido.",
+                                   parameters.Tipo);
+                return BadRequest($"Tipo de movimentação '{parameters.Tipo}' inválido. " +
+                                  TipoMovimentacao.DescreverValoresAceitos());
+            }
+
+            return null;
+        }
 
         // DataInicio/DataFim valem para /pagination e /relatorio. Um intervalo invertido
         // devolveria lista vazia em silêncio, então é rejeitado antes de ir ao banco.

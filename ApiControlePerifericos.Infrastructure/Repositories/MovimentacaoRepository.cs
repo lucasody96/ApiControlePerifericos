@@ -76,6 +76,11 @@ namespace ApiControlePerifericos.Repositories
             if (parameters.ColaboradorId.HasValue)
                 query = query.Where(m => m.ColaboradorId == parameters.ColaboradorId.Value);
 
+            // Comparação exata como a dos ids, e não Contains: 'S' é a saída inteira, não
+            // "tipo que contém S". Combina com os demais filtros por interseção.
+            if (parameters.Tipo.HasValue)
+                query = query.Where(m => m.Tipo == parameters.Tipo.Value);
+
             return query;
         }
 

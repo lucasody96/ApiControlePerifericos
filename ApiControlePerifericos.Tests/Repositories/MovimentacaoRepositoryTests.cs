@@ -402,5 +402,96 @@ namespace ApiControlePerifericos.Tests.Repositories
             Assert.Equal(2, pagina.TotalItemCount);
             Assert.All(pagina, m => Assert.Equal(1, m.ProdutoId));
         }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComFiltroTipo_DeveRetornarSomenteDoTipo()
+        {
+            // Arrange — um de cada tipo, para o filtro ter o que descartar dos dois lados
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'E', Quantidade = 10, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'S', Quantidade = 2, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(2) },
+                    new Movimentacao { Tipo = 'S', Quantidade = 3, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(3) },
+                    new Movimentacao { Tipo = 'A', Quantidade = 1, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(4) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act — "quais saídas aconteceram"
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters { Tipo = 'S' });
+
+            // Assert — é o TotalItemCount que responde "quantas saídas", sem contar linha
+            Assert.Equal(2, pagina.TotalItemCount);
+            Assert.All(pagina, m => Assert.Equal('S', m.Tipo));
+        }
+
+        [Fact]
+        public async Task GetMovimentacoesAsync_ComTipoEmMinusculo_DeveCasarComOGravado()
+        {
+            // Arrange — o tipo é gravado sempre em maiúscula
+            var dbName = Guid.NewGuid().ToString();
+            using (var contexto = CriarContexto(dbName))
+            {
+                contexto.Movimentacoes.AddRange(
+                    new Movimentacao { Tipo = 'S', Quantidade = 2, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(1) },
+                    new Movimentacao { Tipo = 'E', Quantidade = 5, ProdutoId = 1, DataMovimentacao = BaseData.AddDays(2) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act — o assistente pode mandar 's' minúsculo; quem normaliza é o parameters
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetMovimentacoesAsync(new MovimentacoesParameters { Tipo = 's' });
+
+            // Assert — sem a normalização isto voltaria vazio, em silêncio
+            Assert.Equal(1, pagina.TotalItemCount);
+            Assert.Equal('S', pagina.First().Tipo);
+        }
+
+        [Fact]
+        public async Task GetRelatorioAsync_ComTipoProdutoEPeriodo_DeveCombinarOsFiltros()
+        {
+            // Arrange — só uma movimentação satisfaz os três filtros ao mesmo tempo
+            var dbName = Guid.NewGuid().ToString();
+            int mouseId;
+            using (var contexto = CriarContexto(dbName))
+            {
+                var mouse = new Produto { Descricao = "Mouse", SaldoAtual = 10 };
+                var teclado = new Produto { Descricao = "Teclado", SaldoAtual = 10 };
+                var joao = new Colaborador { Nome = "João" };
+                contexto.AddRange(mouse, teclado, joao);
+                await contexto.SaveChangesAsync();
+                mouseId = mouse.ProdutoId;
+
+                contexto.Movimentacoes.AddRange(
+                    // a que passa: saída, do mouse, dentro de julho
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = mouse.ProdutoId, ColaboradorId = joao.ColaboradorId, DataMovimentacao = new DateTime(2026, 7, 15) },
+                    // mesma data e produto, mas entrada
+                    new Movimentacao { Tipo = 'E', Quantidade = 4, ProdutoId = mouse.ProdutoId, DataMovimentacao = new DateTime(2026, 7, 16) },
+                    // saída no período, mas de outro produto
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = teclado.ProdutoId, ColaboradorId = joao.ColaboradorId, DataMovimentacao = new DateTime(2026, 7, 17) },
+                    // saída do mouse, mas fora do período
+                    new Movimentacao { Tipo = 'S', Quantidade = 1, ProdutoId = mouse.ProdutoId, ColaboradorId = joao.ColaboradorId, DataMovimentacao = new DateTime(2026, 8, 1) });
+                await contexto.SaveChangesAsync();
+            }
+
+            // Act
+            using var contexto2 = CriarContexto(dbName);
+            var repo = new MovimentacaoRepository(contexto2);
+            var pagina = await repo.GetRelatorioAsync(new MovimentacoesParameters
+            {
+                Tipo = 'S',
+                ProdutoId = mouseId,
+                DataInicio = new DateTime(2026, 7, 1),
+                DataFim = new DateTime(2026, 7, 31)
+            });
+
+            // Assert — interseção, e não união: um filtro a mais só restringe
+            Assert.Single(pagina);
+            Assert.Equal(new DateTime(2026, 7, 15), pagina.First().DataMovimentacao);
+        }
     }
 }

@@ -67,7 +67,7 @@ namespace ApiControlePerifericos.Services
             if (movimentacao is null)
                 return MovimentacaoNaoEncontrada(movimentacaoId);
 
-            if (!TipoEhValido(dto.Tipo))
+            if (!TipoMovimentacao.EhValido(dto.Tipo))
                 return TipoInvalido(dto.Tipo);
 
             var produtoOrigem = await _uof.ProdutoRepository.GetByIdTrackedAsync(movimentacao.ProdutoId);
@@ -182,9 +182,6 @@ namespace ApiControlePerifericos.Services
         private static int Delta(char tipo, int quantidade) =>
             tipo == 'E' ? quantidade : -quantidade;
 
-        private static bool TipoEhValido(char tipo) =>
-            tipo is 'E' or 'S' or 'A';
-
         // Confirma tudo o que está rastreado (saldo dos produtos + movimentação) num
         // único CommitAsync e só então invalida o cache, já com a alteração persistida.
         private async Task ConfirmarEInvalidarCacheAsync()
@@ -253,7 +250,7 @@ namespace ApiControlePerifericos.Services
         {
             _logger.LogWarning("Alteração cancelada: tipo de movimentação '{Tipo}' inválido.", tipo);
             return EstoqueResult.Falha(EstoqueResultStatus.TipoInvalido,
-                $"Tipo de movimentação '{tipo}' inválido. Use 'E' (entrada), 'S' (saída) ou 'A' (ajuste).");
+                $"Tipo de movimentação '{tipo}' inválido. {TipoMovimentacao.DescreverValoresAceitos()}");
         }
 
         private EstoqueResult SaldoNegativoAposEstorno(Produto produto, int saldoProjetado)
