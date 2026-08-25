@@ -24,7 +24,7 @@ namespace ApiControlePerifericos.Tests.Services
         public AssistenteServiceTests()
         {
             _manual.Setup(m => m.ObterConteudo()).Returns(ManualFake);
-            _ferramentas.Setup(f => f.Obter()).Returns([FerramentaFake]);
+            _ferramentas.Setup(f => f.Obter(It.IsAny<bool>())).Returns([FerramentaFake]);
 
             _service = new AssistenteService(_ia.Object, _manual.Object, _ferramentas.Object, _logger.Object);
         }
@@ -48,7 +48,7 @@ namespace ApiControlePerifericos.Tests.Services
         [InlineData("   ")]
         public async Task ResponderAsync_DeveRecusarPerguntaVazia(string? pergunta)
         {
-            var resultado = await _service.ResponderAsync(pergunta);
+            var resultado = await _service.ResponderAsync(pergunta, ehAdmin: false);
 
             Assert.False(resultado.Sucesso);
             Assert.Equal(AssistenteResultStatus.PerguntaVazia, resultado.Status);
@@ -63,7 +63,7 @@ namespace ApiControlePerifericos.Tests.Services
         {
             var pergunta = new string('a', AssistenteService.TamanhoMaximoPergunta + 1);
 
-            var resultado = await _service.ResponderAsync(pergunta);
+            var resultado = await _service.ResponderAsync(pergunta, ehAdmin: false);
 
             Assert.Equal(AssistenteResultStatus.PerguntaMuitoLonga, resultado.Status);
             Assert.Contains(AssistenteService.TamanhoMaximoPergunta.ToString(), resultado.Mensagem!);
@@ -76,7 +76,7 @@ namespace ApiControlePerifericos.Tests.Services
             ConfigurarResposta("ok");
             var pergunta = new string('a', AssistenteService.TamanhoMaximoPergunta);
 
-            var resultado = await _service.ResponderAsync(pergunta);
+            var resultado = await _service.ResponderAsync(pergunta, ehAdmin: false);
 
             Assert.True(resultado.Sucesso);
         }
@@ -86,7 +86,7 @@ namespace ApiControlePerifericos.Tests.Services
         {
             ConfigurarResposta("Va em Movimentacoes e clique em Nova saida.");
 
-            var resultado = await _service.ResponderAsync("como registro uma saida?");
+            var resultado = await _service.ResponderAsync("como registro uma saida?", ehAdmin: false);
 
             Assert.True(resultado.Sucesso);
             Assert.Equal("Va em Movimentacoes e clique em Nova saida.", resultado.Resposta);
@@ -97,7 +97,7 @@ namespace ApiControlePerifericos.Tests.Services
         {
             ConfigurarResposta("ok");
 
-            await _service.ResponderAsync("  como faco login?  ");
+            await _service.ResponderAsync("  como faco login?  ", ehAdmin: false);
 
             _ia.Verify(i => i.ResponderAsync(
                 It.Is<string>(instrucoes => instrucoes.Contains("manual")),
@@ -112,7 +112,7 @@ namespace ApiControlePerifericos.Tests.Services
         {
             ConfigurarResposta("ok");
 
-            await _service.ResponderAsync("quantos mouses tem em estoque?");
+            await _service.ResponderAsync("quantos mouses tem em estoque?", ehAdmin: false);
 
             _ia.Verify(i => i.ResponderAsync(
                 It.IsAny<string>(),
@@ -120,6 +120,20 @@ namespace ApiControlePerifericos.Tests.Services
                 It.IsAny<string>(),
                 It.Is<IReadOnlyList<FerramentaAssistente>>(catalogo => catalogo.Single() == FerramentaFake),
                 It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ResponderAsync_DeveRepassarARoleParaOCatalogoDeFerramentas(bool ehAdmin)
+        {
+            ConfigurarResposta("ok");
+
+            await _service.ResponderAsync("quem retirou a pilha?", ehAdmin);
+
+            // Quem decide quais ferramentas existem e o catalogo, a partir da role: o
+            // servico nao pode filtrar por conta, senao a regra fica em dois lugares.
+            _ferramentas.Verify(f => f.Obter(ehAdmin), Times.Once);
         }
 
         [Fact]
@@ -130,7 +144,7 @@ namespace ApiControlePerifericos.Tests.Services
             // manual — que é justamente o que a issue #48 veio corrigir.
             ConfigurarResposta("ok");
 
-            await _service.ResponderAsync("qual o saldo do mouse?");
+            await _service.ResponderAsync("qual o saldo do mouse?", ehAdmin: false);
 
             _ia.Verify(i => i.ResponderAsync(
                 It.Is<string>(instrucoes => instrucoes.Contains("manual")
@@ -146,7 +160,7 @@ namespace ApiControlePerifericos.Tests.Services
         {
             ConfigurarFalha();
 
-            var resultado = await _service.ResponderAsync("como registro uma saida?");
+            var resultado = await _service.ResponderAsync("como registro uma saida?", ehAdmin: false);
 
             Assert.Equal(AssistenteResultStatus.FalhaNaIA, resultado.Status);
             Assert.Null(resultado.Resposta);
