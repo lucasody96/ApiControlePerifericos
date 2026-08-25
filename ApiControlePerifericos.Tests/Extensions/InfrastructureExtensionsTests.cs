@@ -164,7 +164,7 @@ namespace ApiControlePerifericos.Tests.Extensions
             // ...e a pergunta vira falha tratada, com a mensagem citando a chave a configurar.
             var assistente = escopo.ServiceProvider.GetRequiredService<IAssistenteIA>();
             var excecao = await Assert.ThrowsAsync<AssistenteIAException>(
-                () => assistente.ResponderAsync("instrucoes", "manual", "pergunta"));
+                () => assistente.ResponderAsync("instrucoes", "manual", "pergunta", []));
 
             Assert.Contains(InfrastructureExtensions.ChaveApiKeyAnthropic, excecao.Message);
         }

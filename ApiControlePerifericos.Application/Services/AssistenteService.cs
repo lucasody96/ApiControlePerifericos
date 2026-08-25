@@ -15,20 +15,29 @@ namespace ApiControlePerifericos.Services
             Você é o assistente do Controle de Periféricos e tira dúvidas de quem usa o sistema.
 
             Regras:
-            - Responda apenas com base no manual fornecido a seguir.
-            - Se a resposta não estiver no manual, diga que não sabe e oriente procurar o
-              administrador. Nunca invente telas, botões ou regras.
+            - Para dúvidas sobre COMO usar o sistema, responda apenas com base no manual
+              fornecido a seguir.
+            - Para perguntas sobre a situação ATUAL do estoque (saldo, estoque mínimo, o que
+              está faltando), use as ferramentas de consulta. Nunca tire um número de estoque
+              do manual e nunca estime um saldo.
+            - Se a ferramenta não encontrar o produto, diga que não encontrou e sugira conferir
+              a descrição. Não invente o resultado.
+            - Se a resposta não estiver no manual nem nas ferramentas, diga que não sabe e
+              oriente procurar o administrador. Nunca invente telas, botões ou regras.
             - Responda em português do Brasil, curto e direto.
             """;
 
         private readonly IAssistenteIA _ia;
         private readonly IManualProvider _manual;
         private readonly ILogger<AssistenteService> _logger;
+        private readonly IFerramentasAssistente _ferramentas;
 
-        public AssistenteService(IAssistenteIA ia, IManualProvider manual, ILogger<AssistenteService> logger)
+        public AssistenteService(IAssistenteIA ia, IManualProvider manual,
+                                 IFerramentasAssistente ferramentas, ILogger<AssistenteService> logger)
         {
             _ia = ia;
             _manual = manual;
+            _ferramentas = ferramentas;
             _logger = logger;
         }
 
@@ -46,7 +55,8 @@ namespace ApiControlePerifericos.Services
 
             try
             {
-                var resposta = await _ia.ResponderAsync(Instrucoes, _manual.ObterConteudo(), pergunta, cancellationToken);
+                var resposta = await _ia.ResponderAsync(Instrucoes, _manual.ObterConteudo(),
+                                                        pergunta, _ferramentas.Obter(), cancellationToken);
                 return AssistenteResult.Ok(resposta);
             }
             catch (AssistenteIAException ex)

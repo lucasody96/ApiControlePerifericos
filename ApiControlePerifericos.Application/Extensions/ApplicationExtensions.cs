@@ -14,6 +14,7 @@ namespace ApiControlePerifericos.Extensions
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             services.AddScoped<IEstoqueService, EstoqueService>();
+            services.AddScoped<IFerramentasAssistente, FerramentasAssistente>();
             services.AddScoped<IAssistenteService, AssistenteService>();
 
             return services;
