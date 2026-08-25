@@ -41,7 +41,8 @@ namespace ApiControlePerifericos.Services
             _logger = logger;
         }
 
-        public async Task<AssistenteResult> ResponderAsync(string? pergunta, CancellationToken cancellationToken = default)
+        public async Task<AssistenteResult> ResponderAsync(string? pergunta, bool ehAdmin,
+                                                           CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(pergunta))
                 return AssistenteResult.Falha(AssistenteResultStatus.PerguntaVazia,
@@ -56,7 +57,7 @@ namespace ApiControlePerifericos.Services
             try
             {
                 var resposta = await _ia.ResponderAsync(Instrucoes, _manual.ObterConteudo(),
-                                                        pergunta, _ferramentas.Obter(), cancellationToken);
+                                                        pergunta, _ferramentas.Obter(ehAdmin), cancellationToken);
                 return AssistenteResult.Ok(resposta);
             }
             catch (AssistenteIAException ex)

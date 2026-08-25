@@ -10,12 +10,13 @@ namespace ApiControlePerifericos.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // Qualquer usuário autenticado pergunta. Com as ferramentas de consulta (issue #48) a
-    // resposta passou a conter dado de estoque, mas nenhum que a pessoa já não veja: as
-    // leituras do ProdutosController também são [Authorize] simples.
+    // Qualquer usuário autenticado pergunta, e é de propósito: o caso de uso principal do
+    // assistente é dúvida de manual, justamente de quem não é admin.
     //
-    // Isto muda quando entrar ferramenta sobre movimentação: lá o controller inteiro é
-    // AdminOnly, e o assistente viraria porta lateral para dado restrito.
+    // O que separa admin de não-admin é a LISTA DE FERRAMENTAS, não o endpoint (issue #49).
+    // As consultas de produto acompanham o ProdutosController, que também é [Authorize]
+    // simples; as de movimentação só entram para Admin, porque o MovimentacoesController
+    // inteiro é AdminOnly e o assistente não pode ser porta lateral para o que ele protege.
     [Authorize]
     public class AssistenteController : ControllerBase
     {
@@ -30,7 +31,8 @@ namespace ApiControlePerifericos.Controllers
         [EnableRateLimiting("assistente")]
         public async Task<ActionResult<RespostaDTO>> Perguntar([FromBody] PerguntaDTO dto, CancellationToken cancellationToken)
         {
-            var resultado = await _assistenteService.ResponderAsync(dto.Pergunta, cancellationToken);
+            var resultado = await _assistenteService.ResponderAsync(
+                dto.Pergunta, User.IsInRole("Admin"), cancellationToken);
 
             if (!resultado.Sucesso)
                 return MapearFalha(resultado);

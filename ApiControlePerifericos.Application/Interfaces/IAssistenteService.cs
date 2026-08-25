@@ -6,6 +6,10 @@ namespace ApiControlePerifericos.Interfaces
     // falha da integração em resultado tratado.
     public interface IAssistenteService
     {
-        Task<AssistenteResult> ResponderAsync(string? pergunta, CancellationToken cancellationToken = default);
+        // O ehAdmin não é preferência de usuário: é o que define quais ferramentas entram
+        // no prompt. Quem sabe a role é o controller, que lê do JWT — por isso desce como
+        // parâmetro, no mesmo padrão do RegistradoPor no EstoqueService.
+        Task<AssistenteResult> ResponderAsync(string? pergunta, bool ehAdmin,
+                                              CancellationToken cancellationToken = default);
     }
 }
