@@ -48,7 +48,9 @@ repositório dependem dela).
   anônimo de metadata no controller.
 - Exposto ao frontend por `WithExposedHeaders("X-Pagination")` na política `FrontendCors`.
 - Parâmetros concretos com filtro próprio: `MovimentacoesParameters` (`DataInicio`, `DataFim`,
-  `DescricaoProduto`, `NomeColaborador`) e `UsuariosParameters` (`Busca`).
+  `DescricaoProduto`, `NomeColaborador`, `ProdutoId`, `ColaboradorId`, `Tipo`) e
+  `UsuariosParameters` (`Busca`). Os filtros se combinam por interseção; os por id e o `Tipo`
+  usam comparação exata, os de texto usam `Contains`.
 
 ## Autorização
 

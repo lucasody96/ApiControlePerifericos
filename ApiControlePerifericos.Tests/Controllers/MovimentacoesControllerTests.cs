@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.Linq.Expressions;
 using System.Security.Claims;
+using X.PagedList.Extensions;
 
 namespace ApiControlePerifericos.Tests.Controllers
 {
@@ -557,6 +558,89 @@ namespace ApiControlePerifericos.Tests.Controllers
             Assert.IsType<BadRequestObjectResult>(result.Result);
             _movimentacaoRepo.Verify(
                 r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Testa se o Get paginado retorna 400 BadRequest quando o tipo esta fora de E/S/A,
+        /// em vez de consultar o banco e devolver lista vazia com cara de "nao houve movimentacao".
+        /// </summary>
+        [Fact]
+        public async Task GetPagination_ComTipoInvalido_DeveRetornar400ENaoConsultarRepositorio()
+        {
+            // Arrange
+            var parameters = new MovimentacoesParameters { Tipo = 'X' };
+
+            // Act
+            var result = await _controller.Get(parameters);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _movimentacaoRepo.Verify(
+                r => r.GetMovimentacoesAsync(It.IsAny<MovimentacoesParameters>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Testa se o GetRelatorio aplica a mesma validacao de tipo do Get paginado: os dois
+        /// expoem o mesmo MovimentacoesParameters.
+        /// </summary>
+        [Fact]
+        public async Task GetRelatorio_ComTipoInvalido_DeveRetornar400ENaoConsultarRepositorio()
+        {
+            // Arrange
+            var parameters = new MovimentacoesParameters { Tipo = 'X' };
+
+            // Act
+            var result = await _controller.GetRelatorio(parameters);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _movimentacaoRepo.Verify(
+                r => r.GetRelatorioAsync(It.IsAny<MovimentacoesParameters>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Testa se o tipo em minuscula passa pela validacao: o parameters normaliza a caixa,
+        /// entao 's' e um filtro valido e nao pode virar 400.
+        /// </summary>
+        [Fact]
+        public async Task GetPagination_ComTipoEmMinusculo_DeveConsultarRepositorioComTipoNormalizado()
+        {
+            // Arrange
+            MovimentacoesParameters? enviado = null;
+            _movimentacaoRepo
+                .Setup(r => r.GetMovimentacoesAsync(It.IsAny<MovimentacoesParameters>()))
+                .Callback<MovimentacoesParameters>(p => enviado = p)
+                .ReturnsAsync(new List<Movimentacao>().ToPagedList(1, 10));
+
+            var parameters = new MovimentacoesParameters { Tipo = 's' };
+
+            // Act
+            var result = await _controller.Get(parameters);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Equal('S', enviado!.Tipo);
+        }
+
+        /// <summary>
+        /// Testa se a validacao de tipo nao atrapalha quem nao filtra por tipo: sem o filtro,
+        /// a consulta segue normalmente.
+        /// </summary>
+        [Fact]
+        public async Task GetPagination_SemTipo_NaoDeveCairNaValidacaoDeTipo()
+        {
+            // Arrange
+            _movimentacaoRepo
+                .Setup(r => r.GetMovimentacoesAsync(It.IsAny<MovimentacoesParameters>()))
+                .ReturnsAsync(new List<Movimentacao>().ToPagedList(1, 10));
+
+            // Act
+            var result = await _controller.Get(new MovimentacoesParameters());
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result.Result);
+            _movimentacaoRepo.Verify(
+                r => r.GetMovimentacoesAsync(It.IsAny<MovimentacoesParameters>()), Times.Once);
         }
     }
 }

@@ -75,7 +75,9 @@ namespace ApiControlePerifericos.Services
                     "primeiro, com 'encontrados' (quantas existem no filtro) e 'exibidos' " +
                     "(quantas vieram). Se 'encontrados' for maior que 'exibidos', NÃO some as " +
                     "quantidades: diga que o filtro tem mais registros do que os listados e peça " +
-                    "um período ou produto mais específico.",
+                    "um período ou produto mais específico. Para responder QUANTAS de um tipo " +
+                    "('quantas saídas em 2026'), filtre por 'tipo' e leia o 'encontrados' — não " +
+                    "conte as linhas da lista.",
                     [
                         new ParametroFerramenta(
                             "descricaoProduto",
@@ -88,6 +90,14 @@ namespace ApiControlePerifericos.Services
                             TipoParametroFerramenta.Texto,
                             "Trecho do nome de quem retirou, por exemplo 'Lucas'. Encontra apenas " +
                             "saídas: entrada e ajuste não têm colaborador.",
+                            Obrigatorio: false),
+
+                        new ParametroFerramenta(
+                            "tipo",
+                            TipoParametroFerramenta.Texto,
+                            "Tipo da movimentação, uma letra: 'E' entrada, 'S' saída (retirada " +
+                            "por um colaborador) ou 'A' ajuste de perda ou quebra. Informe " +
+                            "sempre que a pergunta for sobre um só deles.",
                             Obrigatorio: false),
 
                         new ParametroFerramenta(
@@ -160,13 +170,17 @@ namespace ApiControlePerifericos.Services
             if (dataInicio > dataFim)
                 return Serializar(new { erro = "dataInicio não pode ser maior que dataFim." });
 
+            if (!TentarLerTipo(argumentos, out var tipo))
+                return Serializar(new { erro = $"tipo inválido. {TipoMovimentacao.DescreverValoresAceitos()}" });
+
             var parametros = new MovimentacoesParameters
             {
                 PageSize = LimiteMovimentacoes,
                 DataInicio = dataInicio,
                 DataFim = dataFim,
                 DescricaoProduto = LerTexto(argumentos, "descricaoProduto"),
-                NomeColaborador = LerTexto(argumentos, "nomeColaborador")
+                NomeColaborador = LerTexto(argumentos, "nomeColaborador"),
+                Tipo = tipo
             };
 
             var movimentacoes = await _uof.MovimentacaoRepository.GetRelatorioAsync(parametros);
@@ -206,6 +220,24 @@ namespace ApiControlePerifericos.Services
                 return false;
 
             data = convertida;
+            return true;
+        }
+
+        // O modelo pode mandar 's' minúsculo ou a palavra por extenso. A caixa o
+        // MovimentacoesParameters resolve; o resto vira erro legível, porque tipo
+        // desconhecido devolveria lista vazia com cara de "não houve movimentação".
+        private static bool TentarLerTipo(IReadOnlyDictionary<string, string> argumentos, out char? tipo)
+        {
+            tipo = null;
+
+            var texto = LerTexto(argumentos, "tipo");
+            if (texto is null)
+                return true;
+
+            if (texto.Length != 1 || !TipoMovimentacao.EhValido(char.ToUpperInvariant(texto[0])))
+                return false;
+
+            tipo = char.ToUpperInvariant(texto[0]);
             return true;
         }
 
