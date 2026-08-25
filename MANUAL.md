@@ -96,8 +96,9 @@ Lista as pessoas que retiram itens. São elas que aparecem ao registrar uma **sa
 
 - Por padrão, a tela mostra todas as movimentações, da mais recente para a mais antiga, com paginação.
 - **Filtrar por produto** ou **por colaborador** — escolha no campo correspondente. A etiqueta azul mostra o que está ativo; clique no "x" dela para remover aquele filtro.
+- **Filtrar por tipo** — no campo **Tipo**, escolha **Entrada**, **Saída** ou **Ajuste** para ver só aquele tipo. A opção **Todos** (o padrão) mostra os três juntos.
 - **Filtrar por período** — preencha **De** e **Até** e clique em **Filtrar**.
-- Os filtros **se combinam**: dá para pedir um colaborador dentro de um período (por exemplo, tudo que o João retirou em julho), um produto dentro de um período, ou produto e colaborador ao mesmo tempo. O botão **Limpar** zera todos de uma vez.
+- Os filtros **se combinam**: dá para pedir um colaborador dentro de um período (por exemplo, tudo que o João retirou em julho), só as saídas de um produto, ou produto, colaborador e tipo ao mesmo tempo. O botão **Limpar** zera todos de uma vez.
 
 Cada linha mostra **Data**, **Tipo**, **Produto**, **Quantidade**, **Colaborador** (quando houver) e **Registrado por** (quem fez o lançamento — é o seu usuário).
 
@@ -147,6 +148,9 @@ Gestão de quem acessa o sistema.
 
 **Quero ver o que uma pessoa pegou num período**
 → Movimentações → campo **Colaborador** → escolha a pessoa, preencha **De** e **Até** e clique em **Filtrar**.
+
+**Quero ver só as saídas (ou só as entradas) do mês**
+→ Movimentações → campo **Tipo** → **Saída** → preencha **De** e **Até** e clique em **Filtrar**.
 
 **Cadastrar uma pessoa nova que vai retirar itens**
 → Colaboradores → **Novo colaborador**.
