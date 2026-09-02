@@ -127,6 +127,20 @@ Gestão de quem acessa o sistema.
 
 > ℹ️ **Super administrador não é um perfil que se concede por aqui.** Ele é definido na configuração do servidor, por quem cuida tecnicamente do sistema. Nenhuma tela promove alguém a super administrador.
 
+### 3.6. Nexus.ia — o assistente
+
+**Nexus.ia** é o assistente do Controle de Periféricos. Ele fica no **botão redondo no canto inferior direito**, presente em todas as telas depois que você entra. Clique nele para abrir a conversa, digite a dúvida e pressione **Enter**.
+
+O que ele responde:
+
+- **Como usar o sistema** — os passos de qualquer tarefa descrita neste manual.
+- **Situação do estoque** — saldo de um produto e quais itens estão abaixo do estoque mínimo, consultados na hora.
+- **Histórico de movimentações** *(administradores)* — o que foi movimentado, por período, produto ou colaborador. Quem não é administrador não enxerga o histórico pelo Nexus.ia, assim como não enxerga a tela de Movimentações.
+
+O que ele **não** faz: registrar movimentações, cadastrar produtos ou alterar qualquer dado. O Nexus.ia só consulta. E quando não souber, ele diz que não sabe em vez de inventar — se isso acontecer, procure o administrador.
+
+> ℹ️ **Cada pergunta é respondida sozinha.** O Nexus.ia não lembra do que foi perguntado antes, então evite continuar a frase anterior ("e no caso de saída?") — repita a pergunta inteira.
+
 ---
 
 ## 4. Tarefas do dia a dia (passo a passo rápido)
@@ -198,6 +212,9 @@ Normal de vez em quando: quando fica um tempo sem uso, ele "hiberna" e religa so
 
 **Fui desconectado sozinho.**
 Por segurança, a sessão expira após um tempo sem uso. Basta entrar de novo.
+
+**O Nexus.ia respondeu que não sabe. E agora?**
+Ele só responde o que está neste manual ou o que consegue consultar no estoque, e foi feito para admitir quando não sabe em vez de arriscar uma resposta errada. Reformule a pergunta com o nome exato do produto ou da tela; se ainda assim não vier, procure o administrador.
 
 ---
 

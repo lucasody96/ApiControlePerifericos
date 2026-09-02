@@ -22,7 +22,7 @@ O sistema está **em produção**, hospedado gratuitamente:
 | Microsoft.Extensions.Caching.Memory | 10.0.0 | Cache em memória (decorator) |
 | Scalar.AspNetCore | 2.14.14 | UI de documentação da API |
 | Newtonsoft.Json | 13.0.4 | Serialização JSON |
-| Anthropic (SDK .NET) | 12.42.0 | Assistente de dúvidas sobre o manual (modelo `claude-sonnet-5`) |
+| Anthropic (SDK .NET) | 12.42.0 | Nexus.ia, o assistente do sistema (modelo `claude-sonnet-5`) |
 | xUnit + Moq | — | Testes unitários |
 
 **Frontend:** SPA em React + Vite, mantida em **repositório separado** e consumida por esta API via CORS.
@@ -276,17 +276,19 @@ Não há `POST` genérico — a escrita é feita pelos três endpoints de estoqu
 | `PUT` | `/api/movimentacoes/{id}` | SuperAdminOnly | Atualiza movimentação |
 | `DELETE` | `/api/movimentacoes/{id}` | SuperAdminOnly | Remove movimentação |
 
-### Assistente — `/api/assistente`
+### Assistente (Nexus.ia) — `/api/assistente`
 
 | Método | Rota | Autorização | Descrição |
 |---|---|---|---|
-| `POST` | `/api/assistente/perguntar` | Autenticado | Responde dúvidas sobre o uso do sistema tendo o `MANUAL.md` como única fonte |
+| `POST` | `/api/assistente/perguntar` | Autenticado | Responde dúvidas sobre o uso do sistema tendo o `MANUAL.md` como fonte, e consulta o estoque pelas ferramentas |
 
 Corpo: `{ "pergunta": "como registro uma saída?" }` (máx. 500 caracteres). Resposta: `{ "resposta": "..." }`.
 
 A pergunta vai para o modelo `claude-sonnet-5` com o manual inteiro no `system` marcado para *prompt caching* — instruções e manual são reaproveitados entre requisições, e só a pergunta viaja fora do prefixo cacheado. A regra fica no `AssistenteService` (Application) e a integração no `AnthropicAssistenteIA` (Infrastructure), atrás da porta `IAssistenteIA`. Falha da API externa vira `503`; pergunta vazia ou longa demais, `400`. O endpoint tem rate limit próprio (`RateLimiting:Assistente`, default 10 por minuto), particionado **por usuário**.
 
 > **Consequência operacional:** o `MANUAL.md` entra na imagem como `Content` do projeto WebApi e é lido uma única vez no startup — editar o manual passou a exigir novo deploy da API para o assistente enxergar a mudança.
+
+> **Sobre o nome:** o assistente se chama **Nexus.ia** para o usuário — o nome vive nas instruções do prompt e na interface. Classes, DTOs e a rota continuam `Assistente`: renomear a estrutura não traria ganho e quebraria o contrato da API.
 
 ### Parâmetros de paginação (query string)
 

@@ -137,6 +137,23 @@ namespace ApiControlePerifericos.Tests.Services
         }
 
         [Fact]
+        public async Task Instrucoes_DevemApresentarOAssistentePeloNome()
+        {
+            // O nome e do produto e chega ao usuario por aqui: e o prompt que faz o
+            // assistente se apresentar como Nexus.ia quando perguntam quem ele e.
+            ConfigurarResposta("ok");
+
+            await _service.ResponderAsync("qual o seu nome?", ehAdmin: false);
+
+            _ia.Verify(i => i.ResponderAsync(
+                It.Is<string>(instrucoes => instrucoes.Contains("Nexus.ia")),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<FerramentaAssistente>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
         public async Task Instrucoes_DevemSepararManualDeConsultaAoEstoque()
         {
             // O guardrail é regra de negócio: se as instruções deixarem de mandar consultar
